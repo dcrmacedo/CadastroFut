@@ -1,0 +1,2663 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sistema de Cadastro de Jogadores de Futsal</title>
+    <link rel="icon" href="./CadastroFut/pl.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/docx@7.8.2/build/index.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+    <style>
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .dark .dark\:invert {
+            filter: invert(1);
+        }
+        .photo-preview {
+            width: 3in;
+            height: 4in;
+            object-fit: cover;
+            border: 1px solid #ccc;
+        }
+        .logo-preview {
+            width: 3in;
+            height: 3in;
+            object-fit: contain;
+            border: 1px solid #ccc;
+        }
+        .player-photo-table {
+            width: 45px;
+            height: 60px;
+            object-fit: cover;
+            border: 1px solid #ccc;
+        }
+        .team-logo-table {
+            width: 45px; 
+            height: 45px;
+            object-fit: cover;
+            border: 1px solid #ccc;
+        }
+        .cropper-container {
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        .cropper-preview {
+            overflow: hidden;
+            width: 225px;
+            height: 300px;
+            border: 1px solid #ccc;
+            margin-top: 10px;
+        }
+        .logo-cropper-preview {
+            overflow: hidden;
+            width: 150px;
+            height: 150px;
+            border: 1px solid #ccc;
+            margin-top: 10px;
+        }
+        #PL{
+            height: 65px;
+                   
+        }
+        /* Ajustes responsivos adicionais */
+        @media (max-width: 640px) {
+            .photo-preview, .logo-preview {
+                width: 100%;
+                max-width: 250px;
+                height: auto;
+                aspect-ratio: 3/4;
+            }
+            
+            .logo-preview {
+                aspect-ratio: 1/1;
+            }
+            
+            .cropper-container {
+                max-width: 100%;
+            }
+            
+            .cropper-preview {
+                width: 180px;
+                height: 240px;
+            }
+            
+            .logo-cropper-preview {
+                width: 120px;
+                height: 120px;
+            }
+            
+            /* Ajustes para tabelas em dispositivos móveis */
+            .responsive-table {
+                display: block;
+                width: 100%;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+            
+            /* Aumentar tamanho de toque para botões em dispositivos móveis */
+            .touch-target {
+                min-height: 44px;
+                min-width: 44px;
+            }
+        }
+        
+        /* Animações suaves */
+        .transition-all {
+            transition: all 0.3s ease;
+        }
+        
+        /* Estilização de scrollbar para melhor visualização */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #cccaca;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #6b6b6df3;
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #c21003;
+        }
+        
+        /* Ajustes para telas muito pequenas */
+        @media (max-width: 380px) {
+            .xs-text {
+                font-size: 0.75rem;
+            }
+            
+            .xs-p {
+                padding: 0.5rem !important;
+            }
+            
+            .xs-hidden {
+                display: none;
+            }
+        }
+        
+        /* Ajustes para dispositivos com tela sensível ao toque */
+        @media (hover: none) {
+            .touch-feedback:active {
+                background-color: rgba(93, 92, 222, 0.1);
+            }
+        }
+        
+        /* Estilos para o modal flutuante */
+        .floating-modal {
+            position: absolute;
+            z-index: 1100;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            width: 90%;
+            max-width: 450px;
+            visibility: hidden;
+            opacity: 0;
+            transition: opacity 0.2s ease, visibility 0.2s ease, transform 0.2s ease;
+            transform: translateY(10px);
+        }
+        
+        .floating-modal.show {
+            visibility: visible;
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .dark .floating-modal {
+            background-color: #1F2937;
+            border: 1px solid #374151;
+        }
+        
+        .floating-modal-arrow {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: inherit;
+            transform: rotate(45deg);
+            top: -6px;
+        }
+        
+        .dark .floating-modal-arrow {
+            border-left: 1px solid #374151;
+            border-top: 1px solid #374151;
+        }
+        
+        /* Estilo para a foto maior no modal de visualização */
+        .modal-player-photo {
+            width: 90px;
+            height: 120px;
+            object-fit: cover;
+            border: 1px solid #ccc;
+        }
+        
+        /* Animação de fade para o overlay */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.2s ease-in-out forwards;
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    screens: {
+                        'xs': '380px',
+                    },
+                    colors: {
+                        primary: '#db2525',
+                        secondary: '#1D4ED8',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 min-h-screen">
+    <!-- Login Screen -->
+    <div id="login-screen" class="flex flex-col items-center justify-center min-h-screen p-4">
+        <div class="bg-white dark:bg-gray-800 shadow-lg rounded-lg p-6 sm:p-8 w-full max-w-md">
+            <div class="text-center mb-6 sm:mb-8">
+                <h1 class="text-2xl sm:text-3xl font-bold text-secondary mb-2">Sistema de Futsal</h1>
+                <p class="text-gray-600 dark:text-gray-400">Faça login para acessar o sistema</p>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-1" for="username">Usuário</label>
+                    <input id="username" type="text" class="w-full px-4 py-2 border rounded-lg text-black focus:outline-none focus:ring-2 focus:ring-secondary touch-target" placeholder="Digite seu usuário">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1" for="password">Senha</label>
+                    <div class="relative">
+                        <input id="password" type="password" class="w-full px-4 py-2 border rounded-lg text-black focus:outline-none focus:ring-2 focus:ring-secondary touch-target" placeholder="Digite sua senha">
+                        <button type="button" id="toggle-password" class="absolute inset-y-0 right-0 px-3 flex items-center touch-target">
+                            <i id="password-icon" class="fas fa-eye text-gray-400 hover:text-gray-600"></i>
+                        </button>
+                    </div>
+                </div>
+                <button id="login-btn" class="w-full bg-secondary  hover:bg-primary text-white font-bold py-2 px-4 rounded-lg transition duration-200 touch-target">
+                    Entrar
+                </button>
+                <p class="text-center text-sm">
+                    <a href="#" id="forgot-password" class="text-secondary hover:underline">Esqueceu sua senha?</a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Password Reset Modal -->
+    <div id="reset-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg p-6 sm:p-8 w-full max-w-md">
+            <h2 class="text-xl sm:text-2xl font-bold mb-4">Redefinir Senha</h2>
+            <p class="mb-4">Digite seu e-mail para receber o link de redefinição de senha.</p>
+            <div class="mb-4">
+                <label class="block text-sm font-medium mb-1" for="reset-email">E-mail</label>
+                <input id="reset-email" type="email" class="w-full px-4 py-2 border rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-primary touch-target" placeholder="seuemail@exemplo.com">
+            </div>
+            <div class="flex justify-end space-x-2">
+                <button id="cancel-reset" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 touch-target">Cancelar</button>
+                <button id="send-reset" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-secondary touch-target">Enviar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reset Success Modal -->
+    <div id="reset-success-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg p-6 sm:p-8 w-full max-w-md">
+            <div class="text-center">
+                <i class="fas fa-check-circle text-green-500 text-4xl sm:text-5xl mb-4"></i>
+                <h2 class="text-xl sm:text-2xl font-bold mb-2">Link Enviado!</h2>
+                <p class="mb-4">Um link de redefinição de senha foi enviado para o seu e-mail.</p>
+                <button id="success-ok" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-secondary touch-target">OK</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Image Cropper Modal -->
+    <div id="cropper-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg p-4 sm:p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg sm:text-xl font-bold" id="cropper-title">Ajustar Foto 3x4</h3>
+                <button id="close-cropper" class="text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white touch-target">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <div class="flex flex-col md:flex-row gap-6">
+                <div class="flex-1">
+                    <div class="cropper-container">
+                        <img id="cropper-image" class="max-w-full" alt="Imagem para recorte">
+                    </div>
+                </div>
+                <div class="w-full md:w-64 flex flex-col">
+                    <h4 class="text-lg font-medium mb-2">Pré-visualização</h4>
+                    <div id="preview-container" class="cropper-preview mb-4 mx-auto"></div>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-4" id="cropper-instructions">
+                        Ajuste a imagem para o formato adequado. Arraste para reposicionar e use os controles abaixo para ajustar.
+                    </p>
+                    <div class="space-y-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Zoom</label>
+                            <input type="range" id="zoom-range" min="0.5" max="3" step="0.1" value="1" class="w-full touch-target">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Rotação</label>
+                            <div class="flex gap-2">
+                                <button id="rotate-left" class="px-3 py-1 bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600 touch-target">
+                                    <i class="fas fa-undo"></i>
+                                </button>
+                                <button id="rotate-right" class="px-3 py-1 bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600 touch-target">
+                                    <i class="fas fa-redo"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-auto flex gap-2">
+                        <button id="reset-cropper" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 flex-1 touch-target">
+                            Resetar
+                        </button>
+                        <button id="apply-crop" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-secondary flex-1 touch-target">
+                            Aplicar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating View/Edit Modal -->
+    <div id="floating-modal" class="floating-modal">
+        <div class="floating-modal-arrow"></div>
+        <div class="p-4">
+            <div class="flex justify-between items-start mb-4">
+                <h3 class="text-lg font-bold" id="floating-modal-title">Detalhes do Jogador</h3>
+                <button id="close-floating-modal" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div id="floating-modal-content">
+                <!-- Conteúdo do modal será preenchido dinamicamente -->
+            </div>
+            <div class="mt-4 flex justify-end space-x-2">
+                <button id="floating-modal-cancel" class="px-3 py-1 bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600">
+                    Fechar
+                </button>
+                <button id="floating-modal-action" class="px-3 py-1 bg-primary text-white rounded hover:bg-secondary">
+                    Editar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App Container -->
+    <div id="app-container" class="hidden">
+        <!-- Header -->
+        <header class="bg-primary text-white shadow-md sticky top-0 z-[1100]">
+            <div class="container mx-auto px-4 py-3 flex flex-wrap justify-between items-center">
+                <div class="flex items-center gap-2">
+                <img src="CadastroFut/lg.png" id="PL">
+                <h1 class="text-xl md:text-2xl font-bold">Sistema de Cadastro - Futsal</h1>
+                </div>
+                <div class="flex items-center space-x-2 sm:space-x-4">
+                    <span id="user-type" class="hidden md:inline-block"></span>
+                    <button id="theme-toggle" class="p-2 text-white hover:bg-white hover:bg-opacity-20 rounded transition touch-target" title="Alternar tema">
+                        <i id="theme-icon" class="fas fa-moon"></i>
+                    </button>
+                    <button id="logout-btn" class="px-3 py-1 bg-white text-black rounded hover:bg-gray-400 transition touch-target">Sair</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Navigation Tabs -->
+        <nav class="bg-gray-100 dark:bg-gray-800 shadow-md sticky top-10 z-10">
+            <div class="container mx-auto px-4 overflow-x-auto">
+                <ul class="flex flex-nowrap text-xs sm:text-sm md:text-base overflow-x-auto whitespace-nowrap py-1" id="tabs-navigation">
+                    <li class="mr-1"><button class="tab-btn active px-3 py-2 sm:px-4 sm:py-3 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-t-lg touch-feedback" data-tab="players-tab">Cadastro de Jogadores</button></li>
+                    <li class="mr-1 admin-only"><button class="tab-btn px-3 py-2 sm:px-4 sm:py-3 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-t-lg touch-feedback" data-tab="teams-tab">Times</button></li>
+                    <li class="mr-1 admin-only"><button class="tab-btn px-3 py-2 sm:px-4 sm:py-3 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-t-lg touch-feedback" data-tab="search-tab">Pesquisar</button></li>
+                    <li class="mr-1 admin-only"><button class="tab-btn px-3 py-2 sm:px-4 sm:py-3 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-t-lg touch-feedback" data-tab="export-tab">Exportar</button></li>
+                    <li class="mr-1 admin-only"><button class="tab-btn px-3 py-2 sm:px-4 sm:py-3 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-t-lg touch-feedback" data-tab="settings-tab">Config.</button></li>
+                </ul>
+            </div>
+        </nav>
+
+        <!-- Content Area -->
+        <main class="container mx-auto px-4 py-4 sm:py-6">
+            <!-- Cadastro de Jogadores Tab -->
+            <div id="players-tab" class="tab-content active">
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 sm:p-6 mb-6">
+                    <div class="mb-4 sm:mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                        <h2 class="text-xl sm:text-2xl font-bold">Cadastro de Jogadores</h2>
+                        <div class="flex flex-col xs:flex-row w-full sm:w-auto space-y-2 xs:space-y-0 xs:space-x-2">
+                            <button id="new-player-btn" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded-lg transition touch-target">
+                                <i class="fas fa-plus mr-1"></i> Novo Jogador
+                            </button>
+                            <select id="filter-team" class="border rounded-lg px-4 py-2 bg-white dark:bg-gray-700 text-base touch-target">
+                                <option value="">Todos os Times</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div id="players-list" class="responsive-table">
+                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                            <thead>
+                                <tr>
+                                    <th class="px-2 sm:px-4 py-2 sm:py-3 bg-gray-50 dark:bg-gray-800 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Foto</th>
+                                    <th class="px-2 sm:px-4 py-2 sm:py-3 bg-gray-50 dark:bg-gray-800 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Nome</th>
+                                    <th class="px-2 sm:px-4 py-2 sm:py-3 bg-gray-50 dark:bg-gray-800 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">CPF</th>
+                                    <th class="px-2 sm:px-4 py-2 sm:py-3 bg-gray-50 dark:bg-gray-800 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Time</th>
+                                    <th class="px-2 sm:px-4 py-2 sm:py-3 bg-gray-50 dark:bg-gray-800 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider xs-hidden">Posição</th>
+                                    <th class="px-2 sm:px-4 py-2 sm:py-3 bg-gray-50 dark:bg-gray-800 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider xs-hidden">Nº</th>
+                                    <th class="px-2 sm:px-4 py-2 sm:py-3 bg-gray-50 dark:bg-gray-800 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700" id="players-table-body">
+                                <tr>
+                                    <td colspan="7" class="px-2 sm:px-4 py-2 sm:py-4 text-center text-gray-500 dark:text-gray-400">Nenhum jogador cadastrado</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Player Form (Initially Hidden) -->
+                <div id="player-form-container" class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 sm:p-6 hidden">
+                    <div class="flex justify-between items-center mb-4 sm:mb-6">
+                        <h3 class="text-lg sm:text-xl font-bold" id="form-title">Cadastrar Novo Jogador</h3>
+                        <button id="close-form" class="text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white touch-target">
+                            <i class="fas fa-times text-xl"></i>
+                        </button>
+                    </div>
+
+                    <form id="player-form" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <input type="hidden" id="player-id">
+                        
+                        <!-- Dados Pessoais -->
+                        <div class="col-span-1 md:col-span-2 lg:col-span-3">
+                            <h4 class="text-lg font-semibold mb-2 pb-1 border-b border-gray-200 dark:border-gray-700">Dados Pessoais</h4>
+                        </div>
+                        
+                        <div class="space-y-2">
+                            <label class="block text-sm font-medium" for="fullname">Nome Completo *</label>
+                            <input id="fullname" type="text" class="w-full px-3 py-2 border rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-primary dark:bg-gray-700 touch-target" required>
+                        </div>
+                        
+                        <div class="space-y-2">
+                            <label class="block text-sm font-medium" for="nickname">Apelido</label>
+                            <input id="nickname" type="text" class="w-full px-3 py-2 border rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-primary dark:bg-gray-700 touch-target">
+                        </div>
+                        
+                        <div class="space-y-2">
+                            <label class="block text-sm font-medium" for="cpf">CPF *</label>
+                            <input id="cpf" type="text" class="w-full px-3 py-2 border rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-primary dark:bg-gray-700 touch-target" required>
+                        </div>
+                        
+                        <div class="space-y-2">
+                            <label class="block text-sm font-medium" for="rg">RG *</label>
+                            <input id="rg" type="text" class="w-full px-3 py-2 border rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-primary dark:bg-gray-700 touch-target" required>
+                        </div>
+                        
+                        <div class="space-y-2">
+                            <label class="block text-sm font-medium" for="issuing-agency">Órgão Expedidor *</label>
+                            <input id="issuing-agency" type="text" class="w-full px-3 py-2 border rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-primary dark:bg-gray-700 touch-target" required>
+                        </div>
+                        
+                        <div class="space-y-2">
+                            <label class="block text-sm font-medium" for="birth-date">Data de Nascimento *</label>
+                            <input id="birth-date" type="date" class="w-full px-3 py-2 border rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-primary dark:bg-gray-700 touch-target" required>
+                        </div>
+                        
+                        <div class="space-y-2">
+                            <label class="block text-sm font-medium" for="nationality">Nacionalidade *</label>
+                            <input id="nationality" type="text" class="w-full px-3 py-2 border rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-primary dark:bg-gray-700 touch-target" required value="Brasileira">
+                        </div>
+                        
+                        <div class="space-y-2">
+                            <label class="block text-sm font-medium" for="birth-city">Cidade Natal *</label>
+                            <input id="birth-city" type="text" class="w-full px-3 py-2 border rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-primary dark:bg-gray-700 touch-target" required>
+                        </div>
+                        
+                        <div class="space-y-2">
+                            <label class="block text-sm font-medium" for="birth-state">UF *</label>
+                            <select id="birth-state" class="w-full px-3 py-2 border rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-primary dark:bg-gray-700 touch-target" required>
+                                <option value="">Selecione</option>
+                                <option value="AC">AC</option>
+                                <option value="AL">AL</option>
+                                <option value="AP">AP</option>
+                                <option value="AM">AM</option>
+                                <option value="BA">BA</option>
+                                <option value="CE">CE</option>
+                                <option value="DF">DF</option>
+                                <option value="ES">ES</option>
+                                <option value="GO">GO</option>
+                                <option value="MA">MA</option>
+                                <option value="MT">MT</option>
+                                <option value="MS">MS</option>
+                                <option value="MG">MG</option>
+                                <option value="PA">PA</option>
+                                <option value="PB">PB</option>
+                                <option value="PR">PR</option>
+                                <option value="PE">PE</option>
+                                <option value="PI">PI</option>
+                                <option value="RJ">RJ</option>
+                                <option value="RN">RN</option>
+                                <option value="RS">RS</option>
+                                <option value="RO">RO</option>
+                                <option value="RR">RR</option>
+                                <option value="SC">SC</option>
+                                <option value="SP">SP</option>
+                                <option value="SE">SE</option>
+                                <option value="TO">TO</option>
+                            </select>
+                        </div>
+                        
+                        <div class="space-y-2">
+                            <label class="block text-sm font-medium" for="father-name">Nome do Pai</label>
+                            <input id="father-name" type="text" class="w-full px-3 py-2 border rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-primary dark:bg-gray-700 touch-target">
+                        </div>
+                        
+                        <div class="space-y-2">
+                            <label class="block text-sm font-medium" for="mother-name">Nome da Mãe *</label>
+                            <input id="mother-name" type="text" class="w-full px-3 py-2 border rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-primary dark:bg-gray-700 touch-target" required>
+                        </div>
+                        
+                        <!-- Endereço -->
+                        <div class="col-span-1 md:col-span-2 lg:col-span-3 mt-4">
+                            <h4 class="text-lg font-semibold mb-2 pb-1 border-b border-gray-200 dark:border-gray-700">Endereço</h4>
+                        </div>
+                        
+                        <div class="space-y-2">
+                            <label class="block text-sm font-medium" for="address">Endereço *</label>
+                            <input id="address" type="text" class="w-full px-3 py-2 border rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-primary dark:bg-gray-700 touch-target" required>
+                        </div>
+                        
+                        <div class="space-y-2">
+                            <label class="block text-sm font-medium" for="address-number">N° *</label>
+                            <input id="address-number" type="text" class="w-full px-3 py-2 border rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-primary dark:bg-gray-700 touch-target" required>
+                        </div>
+                        
+                        <div class="space-y-2">
+                            <label class="block text-sm font-medium" for="address-complement">Complemento</label>
+                            <input id="address-complement" type="text" class="w-full px-3 py-2 border rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-primary dark:bg-gray-700 touch-target">
+                        </div>
+                        
+                        <div class="space-y-2">
+                            <label class="block text-sm font-medium" for="neighborhood">Bairro *</label>
+                            <input id="neighborhood" type="text" class="w-full px-3 py-2 border rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-primary dark:bg-gray-700 touch-target" required>
+                        </div>
+                        
+                        <div class="space-y-2">
+                            <label class="block text-sm font-medium" for="zipcode">CEP *</label>
+                            <input id="zipcode" type="text" class="w-full px-3 py-2 border rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-primary dark:bg-gray-700 touch-target" required>
+                        </div>
+                        
+                        <div class="space-y-2">
+                            <label class="block text-sm font-medium" for="municipality">Município *</label>
+                            <input id="municipality" type="text" class="w-full px-3 py-2 border rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-primary dark:bg-gray-700 touch-target" required>
+                        </div>
+                        
+                        <!-- Contato -->
+                        <div class="col-span-1 md:col-span-2 lg:col-span-3 mt-4">
+                            <h4 class="text-lg font-semibold mb-2 pb-1 border-b border-gray-200 dark:border-gray-700">Contato</h4>
+                        </div>
+                        
+                        <div class="space-y-2">
+                            <label class="block text-sm font-medium" for="phone">Celular *</label>
+                            <input id="phone" type="tel" class="w-full px-3 py-2 border rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-primary dark:bg-gray-700 touch-target" required>
+                        </div>
+                        
+                        <div class="space-y-2">
+                            <label class="block text-sm font-medium" for="email">E-mail *</label>
+                            <input id="email" type="email" class="w-full px-3 py-2 border rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-primary dark:bg-gray-700 touch-target" required>
+                        </div>
+                        
+                        <!-- Dados do Jogador -->
+                        <div class="col-span-1 md:col-span-2 lg:col-span-3 mt-4">
+                            <h4 class="text-lg font-semibold mb-2 pb-1 border-b border-gray-200 dark:border-gray-700">Dados do Jogador</h4>
+                        </div>
+                        
+                        <div class="space-y-2">
+                            <label class="block text-sm font-medium" for="team">Time *</label>
+                            <select id="team" class="w-full px-3 py-2 border rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-primary dark:bg-gray-700 touch-target" required>
+                                <option value="">Selecione um time</option>
+                            </select>
+                        </div>
+                        
+                        <div class="space-y-2">
+                            <label class="block text-sm font-medium" for="position">Posição *</label>
+                            <select id="position" class="w-full px-3 py-2 border rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-primary dark:bg-gray-700 touch-target" required>
+                                <option value="">Selecione</option>
+                                <option value="Goleiro">Goleiro</option>
+                                <option value="Fixo">Fixo</option>
+                                <option value="Ala Direita">Ala Direita</option>
+                                <option value="Ala Esquerda">Ala Esquerda</option>
+                                <option value="Pivô">Pivô</option>
+                                <option value="Técnico">Técnico</option>
+                                <option value="Auxiliar Técnico">Auxiliar Técnico</option>
+                            </select>
+                        </div>
+                        
+                        <div class="space-y-2">
+                            <label class="block text-sm font-medium" for="jersey-number">Número da Camisa *</label>
+                            <input id="jersey-number" type="number" min="0" max="99" class="w-full px-3 py-2 border rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-primary dark:bg-gray-700 touch-target" required>
+                        </div>
+                        
+                        <!-- Foto -->
+                        <div class="col-span-1 md:col-span-2 lg:col-span-3 mt-4">
+                            <h4 class="text-lg font-semibold mb-2 pb-1 border-b border-gray-200 dark:border-gray-700">Foto 3x4</h4>
+                        </div>
+                        
+                        <div class="col-span-1 md:col-span-2 lg:col-span-3 flex flex-col md:flex-row gap-6">
+                            <div class="flex flex-col items-center space-y-2">
+                                <div class="w-48 h-64 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg flex items-center justify-center bg-gray-50 dark:bg-gray-700 overflow-hidden">
+                                    <img id="photo-preview" class="max-w-full max-h-full hidden object-cover" alt="Foto 3x4">
+                                    <div id="photo-placeholder" class="text-center p-4">
+                                        <i class="fas fa-camera text-4xl text-gray-400 mb-2"></i>
+                                        <p class="text-sm text-gray-500 dark:text-gray-400">Clique para adicionar foto</p>
+                                    </div>
+                                </div>
+                                <input type="file" id="photo-upload" accept="image/*" class="hidden">
+                                <button type="button" id="photo-button" class="px-4 py-2 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition touch-target">
+                                    Selecionar Foto
+                                </button>
+                            </div>
+                            <div class="flex-1">
+                                <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Requisitos para a foto:</p>
+                                <ul class="list-disc pl-5 text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                                    <li>Fundo branco ou claro</li>
+                                    <li>Rosto centralizado</li>
+                                    <li>Sem óculos escuros ou chapéus</li>
+                                    <li>Expressão neutra</li>
+                                    <li>Boa iluminação</li>
+                                </ul>
+                                <p class="text-sm text-gray-600 dark:text-gray-400 mt-3 mb-2">
+                                    Após selecionar uma foto, você poderá redimensioná-la para o formato 3x4 ideal.
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <!-- Botões -->
+                        <div class="col-span-1 md:col-span-2 lg:col-span-3 mt-6 flex flex-col xs:flex-row justify-end gap-3 xs:space-x-4">
+                            <button type="button" id="cancel-form" class="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition touch-target">
+                                Cancelar
+                            </button>
+                            <button type="submit" class="px-6 py-2 bg-primary hover:bg-secondary text-white rounded-lg transition touch-target">
+                                <span id="save-btn-text">Cadastrar</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Teams Tab -->
+            <div id="teams-tab" class="tab-content">
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 sm:p-6 mb-6">
+                    <div class="mb-4 sm:mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                        <h2 class="text-xl sm:text-2xl font-bold">Gerenciar Times</h2>
+                        <button id="new-team-btn" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded-lg transition touch-target">
+                            <i class="fas fa-plus mr-1"></i> Novo Time
+                        </button>
+                    </div>
+                    
+                    <div id="teams-list" class="responsive-table">
+                        <table class="min-w-full divide-y divide-gray-600 dark:divide-gray-700">
+                            <thead>
+                                <tr >
+                                    <th class="px-2 sm:px-4 py-2 sm:py-3 bg-gray-50 dark:bg-gray-800 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Logo</th>
+                                    <th class="px-2 sm:px-4 py-2 sm:py-3 bg-gray-50 dark:bg-gray-800 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Nome do Time</th>
+                                    <th class="px-2 sm:px-4 py-2 sm:py-3 bg-gray-50 dark:bg-gray-800 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider xs-hidden">Cidade</th>
+                                    <th class="px-2 sm:px-4 py-2 sm:py-3 bg-gray-50 dark:bg-gray-800 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider xs-hidden">Estado</th>
+                                    <th class="px-2 sm:px-4 py-2 sm:py-3 bg-gray-50 dark:bg-gray-800 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Jogadores</th>
+                                    <th class="px-2 sm:px-4 py-2 sm:py-3 bg-gray-50 dark:bg-gray-800 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700" id="teams-table-body">
+                                <tr>
+                                    <td colspan="6" class="px-2 sm:px-4 py-2 sm:py-4 text-center text-gray-500 dark:text-gray-400">Nenhum time cadastrado</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Team Form (Initially Hidden) -->
+                <div id="team-form-container" class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 sm:p-6 hidden">
+                    <div class="flex justify-between items-center mb-4 sm:mb-6">
+                        <h3 class="text-lg sm:text-xl font-bold" id="team-form-title">Cadastrar Novo Time</h3>
+                        <button id="close-team-form" class="text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white touch-target">
+                            <i class="fas fa-times text-xl"></i>
+                        </button>
+                    </div>
+
+                    <form id="team-form" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <input type="hidden" id="team-id">
+                        
+                        <div class="space-y-2 md:col-span-2">
+                            <label class="block text-sm font-medium" for="team-name">Nome do Time *</label>
+                            <input id="team-name" type="text" class="w-full px-3 py-2 border rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-primary dark:bg-gray-700 touch-target" required>
+                        </div>
+                        
+                        <div class="space-y-2">
+                            <label class="block text-sm font-medium" for="team-city">Cidade *</label>
+                            <input id="team-city" type="text" class="w-full px-3 py-2 border rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-primary dark:bg-gray-700 touch-target" required>
+                        </div>
+                        
+                        <div class="space-y-2">
+                            <label class="block text-sm font-medium" for="team-state">Estado *</label>
+                            <select id="team-state" class="w-full px-3 py-2 border rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-primary dark:bg-gray-700 touch-target" required>
+                                <option value="">Selecione</option>
+                                <option value="AC">AC</option>
+                                <option value="AL">AL</option>
+                                <option value="AP">AP</option>
+                                <option value="AM">AM</option>
+                                <option value="BA">BA</option>
+                                <option value="CE">CE</option>
+                                <option value="DF">DF</option>
+                                <option value="ES">ES</option>
+                                <option value="GO">GO</option>
+                                <option value="MA">MA</option>
+                                <option value="MT">MT</option>
+                                <option value="MS">MS</option>
+                                <option value="MG">MG</option>
+                                <option value="PA">PA</option>
+                                <option value="PB">PB</option>
+                                <option value="PR">PR</option>
+                                <option value="PE">PE</option>
+                                <option value="PI">PI</option>
+                                <option value="RJ">RJ</option>
+                                <option value="RN">RN</option>
+                                <option value="RS">RS</option>
+                                <option value="RO">RO</option>
+                                <option value="RR">RR</option>
+                                <option value="SC">SC</option>
+                                <option value="SP">SP</option>
+                                <option value="SE">SE</option>
+                                <option value="TO">TO</option>
+                            </select>
+                        </div>
+                        
+                        <div class="space-y-2 md:col-span-2">
+                            <label class="block text-sm font-medium" for="team-address">Endereço</label>
+                            <input id="team-address" type="text" class="w-full px-3 py-2 border rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-primary dark:bg-gray-700 touch-target">
+                        </div>
+                        
+                        <div class="space-y-2 md:col-span-2">
+                            <label class="block text-sm font-medium" for="team-phone">Telefone</label>
+                            <input id="team-phone" type="tel" class="w-full px-3 py-2 border rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-primary dark:bg-gray-700 touch-target">
+                        </div>
+                        
+                        <!-- Logo do Time -->
+                        <div class="md:col-span-2 mt-4">
+                            <h4 class="text-lg font-semibold mb-2 pb-1 border-b border-gray-200 dark:border-gray-700">Logo do Time</h4>
+                        </div>
+                        
+                        <div class="md:col-span-2 flex flex-col md:flex-row gap-6">
+                            <div class="flex flex-col items-center space-y-2">
+                                <div class="w-64 h-64 max-w-full border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg flex items-center justify-center bg-gray-50 dark:bg-gray-700">
+                                    <img id="logo-preview" class="max-w-full max-h-full hidden object-contain" alt="Logo do Time">
+                                    <div id="logo-placeholder" class="text-center p-4">
+                                        <i class="fas fa-image text-4xl text-gray-400 mb-2"></i>
+                                        <p class="text-sm text-gray-500 dark:text-gray-400">Clique para adicionar logo</p>
+                                    </div>
+                                </div>
+                                <input type="file" id="logo-upload" accept="image/*" class="hidden">
+                                <button type="button" id="logo-button" class="px-4 py-2 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition touch-target">
+                                    Selecionar Logo
+                                </button>
+                            </div>
+                            <div class="flex-1">
+                                <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Requisitos para a logo:</p>
+                                <ul class="list-disc pl-5 text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                                    <li>Boa resolução</li>
+                                    <li>Fundo transparente (se possível)</li>
+                                    <li>Formato quadrado ou circular</li>
+                                    <li>Tamanho máximo de 2MB</li>
+                                </ul>
+                                <p class="text-sm text-gray-600 dark:text-gray-400 mt-3 mb-2">
+                                    Após selecionar uma imagem, você poderá redimensioná-la para o formato ideal.
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <!-- Botões -->
+                        <div class="md:col-span-2 mt-6 flex flex-col xs:flex-row justify-end gap-3 xs:space-x-4">
+                            <button type="button" id="cancel-team-form" class="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition touch-target">
+                                Cancelar
+                            </button>
+                            <button type="submit" class="px-6 py-2 bg-primary hover:bg-secondary text-white rounded-lg transition touch-target">
+                                <span id="save-team-btn-text">Cadastrar</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Search Tab -->
+            <div id="search-tab" class="tab-content">
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 sm:p-6">
+                    <h2 class="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">Pesquisar Jogadores</h2>
+                    
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                        <div class="space-y-2">
+                            <label class="block text-sm font-medium" for="search-term">Termo de Busca</label>
+                            <input id="search-term" type="text" class="w-full px-3 py-2 border rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-primary dark:bg-gray-700 touch-target" placeholder="Nome, CPF, RG, etc.">
+                        </div>
+                        
+                        <div class="space-y-2">
+                            <label class="block text-sm font-medium" for="search-team">Time</label>
+                            <select id="search-team" class="w-full px-3 py-2 border rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-primary dark:bg-gray-700 touch-target">
+                                <option value="">Todos os Times</option>
+                            </select>
+                        </div>
+                        
+                        <div class="flex items-end">
+                            <button id="search-btn" class="w-full bg-primary hover:bg-secondary text-white font-bold py-2 px-4 rounded-lg transition touch-target">
+                                <i class="fas fa-search mr-2"></i> Pesquisar
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="search-results" class="responsive-table">
+                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-300">
+                            <thead>
+                                <tr>
+                                    <th class="px-2 sm:px-4 py-2 sm:py-3 bg-gray-50 dark:bg-gray-800 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Foto</th>
+                                    <th class="px-2 sm:px-4 py-2 sm:py-3 bg-gray-50 dark:bg-gray-800 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Nome</th>
+                                    <th class="px-2 sm:px-4 py-2 sm:py-3 bg-gray-50 dark:bg-gray-800 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">CPF</th>
+                                    <th class="px-2 sm:px-4 py-2 sm:py-3 bg-gray-50 dark:bg-gray-800 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Time</th>
+                                    <th class="px-2 sm:px-4 py-2 sm:py-3 bg-gray-50 dark:bg-gray-800 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider xs-hidden">Posição</th>
+                                    <th class="px-2 sm:px-4 py-2 sm:py-3 bg-gray-50 dark:bg-gray-800 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider xs-hidden">Nº</th>
+                                    <th class="px-2 sm:px-4 py-2 sm:py-3 bg-gray-50 dark:bg-gray-800 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700" id="search-table-body">
+                                <tr>
+                                    <td colspan="7" class="px-2 sm:px-4 py-2 sm:py-4 text-center text-gray-500 dark:text-gray-400">Use o formulário acima para pesquisar jogadores</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Export Tab -->
+            <div id="export-tab" class="tab-content">
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 sm:p-6">
+                    <h2 class="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">Exportar Dados</h2>
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="bg-gray-50 dark:bg-gray-700 p-4 sm:p-6 rounded-lg">
+                            <h3 class="text-lg sm:text-xl font-semibold mb-4">Exportar Jogadores</h3>
+                            <p class="text-gray-600 dark:text-gray-400 mb-4">Exporte a lista de jogadores com suas informações completas.</p>
+                            
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                                <div class="space-y-2">
+                                    <label class="block text-sm font-medium" for="export-players-team">Filtrar por Time</label>
+                                    <select id="export-players-team" class="w-full px-3 py-2 border rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-primary dark:bg-gray-700 touch-target">
+                                        <option value="">Todos os Times</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="space-y-2">
+                                    <label class="block text-sm font-medium" for="export-players-format">Formato</label>
+                                    <select id="export-players-format" class="w-full px-3 py-2 border rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-primary dark:bg-gray-700 touch-target">
+                                        <option value="excel">Excel (.xlsx)</option>
+                                        <option value="word">Word (.docx)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <button id="export-players-btn" class="w-full bg-primary hover:bg-secondary text-white font-bold py-2 px-4 rounded-lg transition touch-target">
+                                <i class="fas fa-download mr-2"></i> Exportar Jogadores
+                            </button>
+                        </div>
+                        
+                        <div class="bg-gray-50 dark:bg-gray-700 p-4 sm:p-6 rounded-lg">
+                            <h3 class="text-lg sm:text-xl font-semibold mb-4">Exportar Times</h3>
+                            <p class="text-gray-600 dark:text-gray-400 mb-4">Exporte a lista de times cadastrados no sistema.</p>
+                            
+                            <div class="space-y-2 mb-4">
+                                <label class="block text-sm font-medium" for="export-teams-format">Formato</label>
+                                <select id="export-teams-format" class="w-full px-3 py-2 border rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-primary dark:bg-gray-700 touch-target">
+                                    <option value="excel">Excel (.xlsx)</option>
+                                    <option value="word">Word (.docx)</option>
+                                </select>
+                            </div>
+                            
+                            <button id="export-teams-btn" class="w-full bg-primary hover:bg-secondary text-white font-bold py-2 px-4 rounded-lg transition touch-target">
+                                <i class="fas fa-download mr-2"></i> Exportar Times
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings Tab -->
+<div id="settings-tab" class="tab-content">
+  <div class="w-full max-w-[420px] mx-auto bg-white dark:bg-gray-800 rounded-lg shadow p-4 sm:p-5">
+    <h2 class="text-lg sm:text-xl font-bold mb-4 text-center">Configurações</h2>
+
+    <!-- Alterar Senha -->
+    <div class="w-full max-w-[420px] mx-auto p-4 bg-white dark:bg-gray-800 rounded-lg shadow">
+      <h3 class="text-base sm:text-lg font-semibold mb-3 text-center">Alterar Senha</h3>
+
+      <form id="change-password-form" class="space-y-2">
+        <div class="space-y-1">
+          <label class="block text-sm font-medium" for="current-password">Senha Atual</label>
+          <input id="current-password" type="password" class="w-full px-2 py-1.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary dark:bg-gray-700 touch-target" required>
+        </div>
+
+        <div class="space-y-1">
+          <label class="block text-sm font-medium" for="new-password">Nova Senha</label>
+          <input id="new-password" type="password" class="w-full px-2 py-1.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary dark:bg-gray-700 touch-target" required>
+        </div>
+
+        <div class="space-y-1">
+          <label class="block text-sm font-medium" for="confirm-password">Confirmar Nova Senha</label>
+          <input id="confirm-password" type="password" class="w-full px-2 py-1.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary dark:bg-gray-700 touch-target" required>
+        </div>
+
+        <div class="space-y-1">
+          <label class="block text-sm font-medium" for="recovery-email">E-mail de Recuperação</label>
+          <input id="recovery-email" type="email" class="w-full px-2 py-1.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary dark:bg-gray-700 touch-target" required>
+          <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Este e-mail será usado para redefinir sua senha caso necessário.</p>
+        </div>
+
+        <button type="submit" class="w-full bg-primary hover:bg-secondary text-white font-semibold py-1.5 px-3 rounded-lg mt-3 text-sm transition">
+          Salvar Alterações
+        </button>
+      </form>
+    </div>
+
+    <!-- Informações do Administrador -->
+    <div id="admin-settings-info" class="w-full max-w-[420px] mx-auto mt-6 bg-gray-50 dark:bg-gray-700 p-4 rounded-lg shadow hidden">
+      <h3 class="text-base sm:text-lg font-semibold mb-3 text-center">Informações do Administrador</h3>
+      <div class="space-y-2">
+        <div>
+          <p class="text-sm font-medium">Usuário:</p>
+          <p id="admin-username" class="text-sm text-gray-700 dark:text-gray-300 break-words"></p>
+        </div>
+        <div>
+          <p class="text-sm font-medium">E-mail de Recuperação:</p>
+          <p id="admin-email" class="text-sm text-gray-700 dark:text-gray-300 break-words"></p>
+        </div>
+        <div>
+          <p class="text-sm font-medium">Última alteração:</p>
+          <p id="admin-last-update" class="text-sm text-gray-700 dark:text-gray-300 break-words"></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+    <!-- Toast/Alert -->
+    <div id="toast" class="fixed bottom-4 right-4 px-4 py-3 rounded-lg bg-gray-800 text-white hidden z-50 max-w-xs sm:max-w-sm shadow-lg transform transition-all duration-300 ease-in-out">
+        <span id="toast-message" class="block text-sm sm:text-base"></span>
+    </div>
+
+    <!-- Confirm Delete Modal -->
+    <div id="confirm-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg p-4 sm:p-6 w-full max-w-md">
+            <h3 class="text-lg sm:text-xl font-bold mb-3 sm:mb-4" id="confirm-title">Confirmar Exclusão</h3>
+            <p class="mb-4 sm:mb-6" id="confirm-message">Tem certeza que deseja excluir este item? Esta ação não pode ser desfeita.</p>
+            <div class="flex flex-col xs:flex-row justify-end gap-3 xs:space-x-3">
+                <button id="confirm-cancel" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 touch-target">Cancelar</button>
+                <button id="confirm-ok" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 touch-target">Excluir</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Dark Mode Support
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.classList.add('dark');
+        }
+        
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+            if (event.matches) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        });
+
+        // Aplicação
+        document.addEventListener('DOMContentLoaded', function() {
+            // Estado da Aplicação
+            const appState = {
+                currentUser: null,
+                isAdmin: false,
+                players: [],
+                teams: [
+                    { id: 1, name: 'Estrela Futsal', city: 'São Paulo', state: 'SP', address: 'Rua das Estrelas, 123', phone: '(11) 99999-9999', logo: null },
+                    { id: 2, name: 'Leões FC', city: 'Rio de Janeiro', state: 'RJ', address: 'Avenida Central, 456', phone: '(21) 98888-8888', logo: null }
+                ],
+                lastId: {
+                    players: 0,
+                    teams: 2
+                },
+                credentials: {
+                    admin: { username: 'admin', password: 'FF7@2025', email: 'admin@example.com', lastUpdate: null },
+                    user: { username: 'user', password: '@usuário2000', email: '', lastUpdate: null }
+                },
+                cropper: null,
+                cropperType: 'photo', // 'photo' para jogador ou 'logo' para time
+                isMobile: window.innerWidth < 640, // Detectar se é mobile
+                activeFloatingModal: null, // Para armazenar o ID do jogador mostrado no modal flutuante
+                floatingModalMode: null // 'view' ou 'edit'
+            };
+
+            // Atualizar estado de mobilidade ao redimensionar a janela
+            window.addEventListener('resize', function() {
+                appState.isMobile = window.innerWidth < 640;
+                // Podemos adicionar mais lógica aqui para ajustar a UI quando o tamanho muda
+            });
+
+            // Elementos DOM
+            const elements = {
+                // Login Screen
+                loginScreen: document.getElementById('login-screen'),
+                loginBtn: document.getElementById('login-btn'),
+                usernameInput: document.getElementById('username'),
+                passwordInput: document.getElementById('password'),
+                togglePassword: document.getElementById('toggle-password'),
+                passwordIcon: document.getElementById('password-icon'),
+                forgotPassword: document.getElementById('forgot-password'),
+                resetModal: document.getElementById('reset-modal'),
+                resetEmail: document.getElementById('reset-email'),
+                cancelReset: document.getElementById('cancel-reset'),
+                sendReset: document.getElementById('send-reset'),
+                resetSuccessModal: document.getElementById('reset-success-modal'),
+                successOk: document.getElementById('success-ok'),
+                
+                // Main App
+                appContainer: document.getElementById('app-container'),
+                tabButtons: document.querySelectorAll('.tab-btn'),
+                tabContents: document.querySelectorAll('.tab-content'),
+                adminOnlyElements: document.querySelectorAll('.admin-only'),
+                userType: document.getElementById('user-type'),
+                logoutBtn: document.getElementById('logout-btn'),
+                
+                // Players Tab
+                newPlayerBtn: document.getElementById('new-player-btn'),
+                filterTeam: document.getElementById('filter-team'),
+                playersTableBody: document.getElementById('players-table-body'),
+                playerFormContainer: document.getElementById('player-form-container'),
+                playerForm: document.getElementById('player-form'),
+                closeForm: document.getElementById('close-form'),
+                cancelForm: document.getElementById('cancel-form'),
+                formTitle: document.getElementById('form-title'),
+                saveBtnText: document.getElementById('save-btn-text'),
+                photoUpload: document.getElementById('photo-upload'),
+                photoButton: document.getElementById('photo-button'),
+                photoPreview: document.getElementById('photo-preview'),
+                photoPlaceholder: document.getElementById('photo-placeholder'),
+                
+                // Teams Tab
+                teamsTableBody: document.getElementById('teams-table-body'),
+                newTeamBtn: document.getElementById('new-team-btn'),
+                teamFormContainer: document.getElementById('team-form-container'),
+                teamForm: document.getElementById('team-form'),
+                closeTeamForm: document.getElementById('close-team-form'),
+                cancelTeamForm: document.getElementById('cancel-team-form'),
+                teamFormTitle: document.getElementById('team-form-title'),
+                saveTeamBtnText: document.getElementById('save-team-btn-text'),
+                logoUpload: document.getElementById('logo-upload'),
+                logoButton: document.getElementById('logo-button'),
+                logoPreview: document.getElementById('logo-preview'),
+                logoPlaceholder: document.getElementById('logo-placeholder'),
+                
+                // Cropper Modal
+                cropperModal: document.getElementById('cropper-modal'),
+                cropperImage: document.getElementById('cropper-image'),
+                cropperTitle: document.getElementById('cropper-title'),
+                cropperInstructions: document.getElementById('cropper-instructions'),
+                previewContainer: document.getElementById('preview-container'),
+                closeCropper: document.getElementById('close-cropper'),
+                zoomRange: document.getElementById('zoom-range'),
+                rotateLeft: document.getElementById('rotate-left'),
+                rotateRight: document.getElementById('rotate-right'),
+                resetCropper: document.getElementById('reset-cropper'),
+                applyCrop: document.getElementById('apply-crop'),
+                
+                // Floating Modal
+                floatingModal: document.getElementById('floating-modal'),
+                floatingModalTitle: document.getElementById('floating-modal-title'),
+                floatingModalContent: document.getElementById('floating-modal-content'),
+                floatingModalArrow: document.querySelector('.floating-modal-arrow'),
+                closeFloatingModal: document.getElementById('close-floating-modal'),
+                floatingModalCancel: document.getElementById('floating-modal-cancel'),
+                floatingModalAction: document.getElementById('floating-modal-action'),
+                
+                // Search Tab
+                searchTerm: document.getElementById('search-term'),
+                searchTeam: document.getElementById('search-team'),
+                searchBtn: document.getElementById('search-btn'),
+                searchTableBody: document.getElementById('search-table-body'),
+                
+                // Export Tab
+                exportPlayersTeam: document.getElementById('export-players-team'),
+                exportPlayersFormat: document.getElementById('export-players-format'),
+                exportPlayersBtn: document.getElementById('export-players-btn'),
+                exportTeamsFormat: document.getElementById('export-teams-format'),
+                exportTeamsBtn: document.getElementById('export-teams-btn'),
+                
+                // Settings Tab
+                changePasswordForm: document.getElementById('change-password-form'),
+                currentPassword: document.getElementById('current-password'),
+                newPassword: document.getElementById('new-password'),
+                confirmPassword: document.getElementById('confirm-password'),
+                recoveryEmail: document.getElementById('recovery-email'),
+                adminSettingsInfo: document.getElementById('admin-settings-info'),
+                adminUsername: document.getElementById('admin-username'),
+                adminEmail: document.getElementById('admin-email'),
+                adminLastUpdate: document.getElementById('admin-last-update'),
+                
+                // Toast
+                toast: document.getElementById('toast'),
+                toastMessage: document.getElementById('toast-message'),
+                
+                // Confirm Modal
+                confirmModal: document.getElementById('confirm-modal'),
+                confirmTitle: document.getElementById('confirm-title'),
+                confirmMessage: document.getElementById('confirm-message'),
+                confirmCancel: document.getElementById('confirm-cancel'),
+                confirmOk: document.getElementById('confirm-ok')
+            };
+             
+            // Disponibilizar funções globalmente
+            window.editPlayer = editPlayer;
+            window.deletePlayer = deletePlayer;
+            window.editTeam = editTeam;
+            window.deleteTeam = deleteTeam;
+            window.viewPlayer = viewPlayer;
+            window.showFloatingPlayerDetails = showFloatingModal;   
+
+
+            // Inicialização
+            initializeApp();
+
+            // Funções de Inicialização
+            function initializeApp() {
+                // Inicializar teams select options
+                populateTeamDropdowns();
+                
+                // Renderizar times
+                renderTeams();
+
+                // Event Listeners
+                setupEventListeners();
+                
+                // Adicionar classes específicas para dispositivos móveis
+                adjustForMobileIfNeeded();
+                
+                // Adicionar evento para fechar modal flutuante ao clicar fora dele
+                document.addEventListener('click', function(event) {
+                    if (!elements.floatingModal.contains(event.target) && 
+                        !event.target.classList.contains('view-player-btn') && 
+                        !event.target.classList.contains('edit-player-btn') &&
+                        !event.target.closest('.view-player-btn') && 
+                        !event.target.closest('.edit-player-btn')) {
+                        hideFloatingModal();
+                    }
+                });
+                
+                // Para fins de demonstração, adicionar um jogador inicial
+                i
+                }
+            
+            
+            // Ajustar interface para dispositivos móveis
+            function adjustForMobileIfNeeded() {
+                if (appState.isMobile) {
+                    // Adicionar classes específicas para melhorar a experiência em dispositivos móveis
+                    document.querySelectorAll('.responsive-table').forEach(table => {
+                        table.classList.add('overflow-x-auto');
+                    });
+                    
+                    // Adicionar classe para tablets e dispositivos menores
+                    document.querySelectorAll('.xs-hidden').forEach(el => {
+                        if (window.innerWidth < 380) {
+                            el.style.display = 'none';
+                        }
+                    });
+                    
+                    // Ajustar padding para elementos em telas muito pequenas
+                    if (window.innerWidth < 380) {
+                        document.querySelectorAll('.xs-p').forEach(el => {
+                            el.classList.add('p-2');
+                        });
+                    }
+                }
+            }
+
+            function populateTeamDropdowns() {
+                const teamOptions = appState.teams.map(team => `<option value="${team.id}">${team.name}</option>`).join('');
+                
+                // Popular todos os dropdowns de time
+                elements.filterTeam.innerHTML = `<option value="">Todos os Times</option>${teamOptions}`;
+                document.getElementById('team').innerHTML = `<option value="">Selecione um time</option>${teamOptions}`;
+                elements.searchTeam.innerHTML = `<option value="">Todos os Times</option>${teamOptions}`;
+                elements.exportPlayersTeam.innerHTML = `<option value="">Todos os Times</option>${teamOptions}`;
+            }
+
+            function setupEventListeners() {
+                // Login
+                elements.loginBtn.addEventListener('click', handleLogin);
+                elements.togglePassword.addEventListener('click', togglePasswordVisibility);
+                elements.forgotPassword.addEventListener('click', showResetModal);
+                elements.cancelReset.addEventListener('click', hideResetModal);
+                elements.sendReset.addEventListener('click', handleResetPassword);
+                elements.successOk.addEventListener('click', hideSuccessModal);
+                
+                // Logout
+                elements.logoutBtn.addEventListener('click', handleLogout);
+                
+                // Tabs
+                elements.tabButtons.forEach(button => {
+                    button.addEventListener('click', () => {
+                        const tabId = button.getAttribute('data-tab');
+                        switchTab(tabId);
+                    });
+                });
+                
+                // Players
+                elements.newPlayerBtn.addEventListener('click', showNewPlayerForm);
+                elements.closeForm.addEventListener('click', hidePlayerForm);
+                elements.cancelForm.addEventListener('click', hidePlayerForm);
+                elements.playerForm.addEventListener('submit', handlePlayerFormSubmit);
+                elements.filterTeam.addEventListener('change', filterPlayers);
+                elements.photoButton.addEventListener('click', () => elements.photoUpload.click());
+                elements.photoUpload.addEventListener('change', (e) => {
+                    appState.cropperType = 'photo';
+                    setupCropperModal(3/4, 'Ajustar Foto 3x4', 
+                        'Ajuste a imagem para o formato 3x4. Arraste para reposicionar e use os controles abaixo para ajustar.');
+                    handleImageUpload(e, 'photo');
+                });
+                
+                // Teams
+                elements.newTeamBtn.addEventListener('click', showNewTeamForm);
+                elements.closeTeamForm.addEventListener('click', hideTeamForm);
+                elements.cancelTeamForm.addEventListener('click', hideTeamForm);
+                elements.teamForm.addEventListener('submit', handleTeamFormSubmit);
+                elements.logoButton.addEventListener('click', () => elements.logoUpload.click());
+                elements.logoUpload.addEventListener('change', (e) => {
+                    appState.cropperType = 'logo';
+                    setupCropperModal(1/1, 'Ajustar Logo do Time', 
+                        'Ajuste a imagem para o formato adequado. Arraste para reposicionar e use os controles abaixo para ajustar.');
+                    handleImageUpload(e, 'logo');
+                });
+                
+                // Cropper
+                elements.closeCropper.addEventListener('click', hideCropperModal);
+                elements.zoomRange.addEventListener('input', handleCropperZoom);
+                elements.rotateLeft.addEventListener('click', () => rotateCropper(-90));
+                elements.rotateRight.addEventListener('click', () => rotateCropper(90));
+                elements.resetCropper.addEventListener('click', resetCropper);
+                elements.applyCrop.addEventListener('click', applyCrop);
+                
+                // Floating Modal
+                elements.closeFloatingModal.addEventListener('click', hideFloatingModal);
+                elements.floatingModalCancel.addEventListener('click', hideFloatingModal);
+                elements.floatingModalAction.addEventListener('click', handleFloatingModalAction);
+                
+                // Search
+                elements.searchBtn.addEventListener('click', handleSearch);
+                
+                // Export
+                elements.exportPlayersBtn.addEventListener('click', exportPlayers);
+                elements.exportTeamsBtn.addEventListener('click', exportTeams);
+                
+                // Settings
+                elements.changePasswordForm.addEventListener('submit', handleChangePassword);
+                
+                // Modal
+                elements.confirmCancel.addEventListener('click', hideConfirmModal);
+                
+                // Adaptar a interface ao redimensionar a janela
+                window.addEventListener('resize', function() {
+                    appState.isMobile = window.innerWidth < 640;
+                    adjustForMobileIfNeeded();
+                });
+                
+                // Event listeners para feedback tátil em dispositivos móveis
+                document.querySelectorAll('.touch-feedback').forEach(el => {
+                    el.addEventListener('touchstart', function() {
+                        this.classList.add('bg-opacity-10');
+                    });
+                    el.addEventListener('touchend', function() {
+                        this.classList.remove('bg-opacity-10');
+                    });
+                });
+                
+                // Theme Toggle Button
+                const themeToggle = document.getElementById('theme-toggle');
+                const themeIcon = document.getElementById('theme-icon');
+                
+                // Update theme icon based on current mode
+                function updateThemeIcon() {
+                    if (document.documentElement.classList.contains('dark')) {
+                        themeIcon.classList.remove('fa-moon');
+                        themeIcon.classList.add('fa-sun');
+                        themeToggle.setAttribute('title', 'Alternar para modo claro');
+                    } else {
+                        themeIcon.classList.remove('fa-sun');
+                        themeIcon.classList.add('fa-moon');
+                        themeToggle.setAttribute('title', 'Alternar para modo escuro');
+                    }
+                }
+                
+                // Initialize theme icon
+                updateThemeIcon();
+                
+                // Theme toggle event listener
+                themeToggle.addEventListener('click', function() {
+                    if (document.documentElement.classList.contains('dark')) {
+                        document.documentElement.classList.remove('dark');
+                    } else {
+                        document.documentElement.classList.add('dark');
+                    }
+                    updateThemeIcon();
+                });
+                
+                // Update icon when system preference changes
+                const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+                mediaQuery.addEventListener('change', function() {
+                    updateThemeIcon();
+                });
+            }
+
+            // Funções para o Modal Flutuante
+            function showFloatingModal(playerId, mode, clickEvent) {
+                // Prevenir o comportamento padrão do evento de clique
+                if (clickEvent) {
+                    clickEvent.preventDefault();
+                    clickEvent.stopPropagation();
+                }
+                
+                const player = appState.players.find(p => p.id === playerId);
+                if (!player) return;
+                
+                appState.activeFloatingModal = playerId;
+                appState.floatingModalMode = mode;
+                
+                // Configurar título do modal
+                elements.floatingModalTitle.textContent = mode === 'view' ? 'Detalhes do Jogador' : 'Editar Jogador';
+                
+                // Configurar botão de ação
+                elements.floatingModalAction.textContent = mode === 'view' ? 'Editar' : 'Salvar';
+                elements.floatingModalAction.style.display = mode === 'view' ? 'block' : 'none';
+                
+                // Preparar o conteúdo do modal
+                elements.floatingModalContent.innerHTML = generatePlayerModalContent(player, mode);
+                
+                // Posicionar o modal próximo ao botão clicado
+                if (clickEvent) {
+                    const button = clickEvent.currentTarget;
+                    const buttonRect = button.getBoundingClientRect();
+                    const modalRect = elements.floatingModal.getBoundingClientRect();
+                    
+                    // Cálculo da posição (modal abaixo do botão)
+                    const topPosition = buttonRect.bottom + window.scrollY + 10; // 10px de margem
+                    const leftPosition = Math.max(10, buttonRect.left + window.scrollX - modalRect.width / 2 + buttonRect.width / 2);
+                    
+                    // Ajustar para não ultrapassar a janela
+                    const rightEdge = leftPosition + modalRect.width;
+                    const adjustedLeft = rightEdge > window.innerWidth - 10 ? window.innerWidth - modalRect.width - 10 : leftPosition;
+                    
+                    // Posicionar modal
+                    elements.floatingModal.style.top = `${topPosition}px`;
+                    elements.floatingModal.style.left = `${adjustedLeft}px`;
+                    
+                    // Posicionar seta do modal
+                    const arrowLeftPosition = buttonRect.left + buttonRect.width / 2 - adjustedLeft;
+                    elements.floatingModalArrow.style.left = `${arrowLeftPosition}px`;
+                }
+                
+                // Mostrar o modal com animação
+                elements.floatingModal.classList.add('show');
+                
+                // Se for modo de edição, adicionar listeners para os campos editáveis
+                if (mode === 'edit') {
+                    const inputs = elements.floatingModalContent.querySelectorAll('input, select');
+                    inputs.forEach(input => {
+                        input.addEventListener('change', () => {
+                            validateFloatingModalFields();
+                        });
+                        input.addEventListener('input', () => {
+                            validateFloatingModalFields();
+                        });
+                    });
+                    
+                    // Verificar campos inicialmente
+                    validateFloatingModalFields();
+                }
+            }
+            
+            function validateFloatingModalFields() {
+                const requiredInputs = elements.floatingModalContent.querySelectorAll('input[required], select[required]');
+                let isValid = true;
+                
+                requiredInputs.forEach(input => {
+                    if (!input.value.trim()) {
+                        isValid = false;
+                    }
+                });
+                
+                // Habilitar/desabilitar botão de salvar
+                elements.floatingModalAction.disabled = !isValid;
+                if (isValid) {
+                    elements.floatingModalAction.classList.remove('opacity-50', 'cursor-not-allowed');
+                    elements.floatingModalAction.classList.add('hover:bg-secondary');
+                } else {
+                    elements.floatingModalAction.classList.add('opacity-50', 'cursor-not-allowed');
+                    elements.floatingModalAction.classList.remove('hover:bg-secondary');
+                }
+            }
+            
+            function hideFloatingModal() {
+                elements.floatingModal.classList.remove('show');
+                appState.activeFloatingModal = null;
+                appState.floatingModalMode = null;
+            }
+            
+            function generatePlayerModalContent(player, mode) {
+                const isViewMode = mode === 'view';
+                const team = appState.teams.find(t => t.id === player.teamId);
+                const teamName = team ? team.name : '';
+                
+                if (isViewMode) {
+                    // Modo de visualização
+                    return `
+                        <div class="flex flex-col sm:flex-row gap-4">
+                            <div class="flex-shrink-0">
+                                ${player.photo ? 
+                                    `<img src="${player.photo}" alt="Foto de ${player.fullname}" class="modal-player-photo">` : 
+                                    `<div class="modal-player-photo bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                                        <i class="fas fa-user text-3xl text-gray-400 dark:text-gray-500"></i>
+                                    </div>`
+                                }
+                            </div>
+                            <div class="flex-grow">
+                                <div class="grid grid-cols-1 gap-2">
+                                    <div>
+                                        <h4 class="text-base font-bold">${player.fullname}</h4>
+                                        ${player.nickname ? `<p class="text-sm text-gray-600 dark:text-gray-400">${player.nickname}</p>` : ''}
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-2 text-sm">
+                                        <div>
+                                            <p class="font-medium">Time:</p>
+                                            <p>${teamName}</p>
+                                        </div>
+                                        <div>
+                                            <p class="font-medium">Posição:</p>
+                                            <p>${player.position}</p>
+                                        </div>
+                                        <div>
+                                            <p class="font-medium">Camisa:</p>
+                                            <p>${player.jerseyNumber}</p>
+                                        </div>
+                                        <div>
+                                            <p class="font-medium">CPF:</p>
+                                            <p>${player.cpf}</p>
+                                        </div>
+                                    </div>
+                                    <div class="mt-2">
+                                        <p class="font-medium text-sm">Contato:</p>
+                                        <p class="text-sm">${player.phone} | ${player.email}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    // Modo de edição (formulário simplificado)
+                    // Obter opções de times para o select
+                    const teamOptions = appState.teams.map(t => 
+                        `<option value="${t.id}" ${t.id === player.teamId ? 'selected' : ''}>${t.name}</option>`
+                    ).join('');
+                    
+                    // Opções para posição
+                    const positions = ['Goleiro', 'Fixo', 'Ala Direita', 'Ala Esquerda', 'Pivô', 'Técnico', 'Auxiliar Técnico'];
+                    const positionOptions = positions.map(pos => 
+                        `<option value="${pos}" ${pos === player.position ? 'selected' : ''}>${pos}</option>`
+                    ).join('');
+                    
+                    return `
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div class="sm:col-span-2">
+                                <label class="block text-sm font-medium mb-1">Nome Completo</label>
+                                <input type="text" class="w-full px-3 py-2 border text-black rounded-lg text-sm" 
+                                    value="${player.fullname}" id="modal-fullname" required>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-1">CPF</label>
+                                <input type="text" class="w-full px-3 py-2 text-black border rounded-lg text-sm" 
+                                    value="${player.cpf}" id="modal-cpf" required>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-1">Posição</label>
+                                <select class="w-full px-3 py-2 border text-black rounded-lg text-sm" id="modal-position" required>
+                                    <option value="">Selecione</option>
+                                    ${positionOptions}
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-1">Time</label>
+                                <select class="w-full px-3 py-2 border text-black rounded-lg text-sm" id="modal-team" required>
+                                    <option value="">Selecione</option>
+                                    ${teamOptions}
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-1">Nº da Camisa</label>
+                                <input type="number" min="0" max="99" class="w-full px-3 py-2 border text-black rounded-lg text-sm" 
+                                    value="${player.jerseyNumber}" id="modal-jersey-number" required>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+            
+            function handleFloatingModalAction() {
+                if (!appState.activeFloatingModal) return;
+                
+                if (appState.floatingModalMode === 'view') {
+                    // No modo de visualização, o botão serve para mudar para o modo de edição
+                    showFloatingModal(appState.activeFloatingModal, 'edit');
+                } else if (appState.floatingModalMode === 'edit') {
+                    // No modo de edição, o botão serve para salvar as alterações
+                    saveFloatingModalChanges();
+                }
+            }
+            
+            function saveFloatingModalChanges() {
+                if (!appState.activeFloatingModal) return;
+                
+                const playerId = appState.activeFloatingModal;
+                const playerIndex = appState.players.findIndex(p => p.id === playerId);
+                
+                if (playerIndex === -1) return;
+                
+                // Obter valores do formulário do modal
+                const fullname = document.getElementById('modal-fullname').value;
+                const cpf = document.getElementById('modal-cpf').value;
+                const position = document.getElementById('modal-position').value;
+                const teamId = parseInt(document.getElementById('modal-team').value);
+                const jerseyNumber = document.getElementById('modal-jersey-number').value;
+                
+                // Validar campos obrigatórios
+                if (!fullname || !cpf || !position || !teamId || !jerseyNumber) {
+                    showToast('Preencha todos os campos obrigatórios');
+                    return;
+                }
+                
+                // Atualizar jogador
+                const player = appState.players[playerIndex];
+                player.fullname = fullname;
+                player.cpf = cpf;
+                player.position = position;
+                player.teamId = teamId;
+                player.jerseyNumber = jerseyNumber;
+                
+                // Atualizar nome do time
+                const team = appState.teams.find(t => t.id === teamId);
+                player.teamName = team ? team.name : '';
+                
+                // Atualizar tabelas e fechar modal
+                renderPlayers();
+                renderTeams(); // Atualizar contagem de jogadores nos times
+                hideFloatingModal();
+                
+                showToast('Jogador atualizado com sucesso!');
+            }
+
+            // Login e Autenticação
+            function togglePasswordVisibility() {
+                const passwordInput = elements.passwordInput;
+                const passwordIcon = elements.passwordIcon;
+                
+                if (passwordInput.type === 'password') {
+                    passwordInput.type = 'text';
+                    passwordIcon.classList.remove('fa-eye');
+                    passwordIcon.classList.add('fa-eye-slash');
+                } else {
+                    passwordInput.type = 'password';
+                    passwordIcon.classList.remove('fa-eye-slash');
+                    passwordIcon.classList.add('fa-eye');
+                }
+            }
+
+            function handleLogin() {
+                const username = elements.usernameInput.value.trim();
+                const password = elements.passwordInput.value.trim();
+                
+                if (!username || !password) {
+                    showToast('Preencha todos os campos de login');
+                    return;
+                }
+                
+                // Verificar se é admin
+                if (password === appState.credentials.admin.password) {
+                    appState.currentUser = username;
+                    appState.isAdmin = true;
+                    elements.userType.textContent = 'Administrador';
+                    elements.adminOnlyElements.forEach(el => el.style.display = 'block');
+                    updateAdminInfoUI();
+                    showApp();
+                }
+                // Verificar se é usuário comum
+                else if (password === appState.credentials.user.password) {
+                    appState.currentUser = username;
+                    appState.isAdmin = false;
+                    elements.userType.textContent = 'Usuário';
+                    elements.adminOnlyElements.forEach(el => el.style.display = 'none');
+                    showApp();
+                } 
+                else {
+                    showToast('Credenciais inválidas');
+                }
+            }
+
+            function showApp() {
+                elements.loginScreen.style.display = 'none';
+                elements.appContainer.style.display = 'block';
+                
+                // Mostrar primeiro a aba de cadastro sempre
+                switchTab('players-tab');
+                
+                // Ajustar UI para mobile se necessário
+                adjustForMobileIfNeeded();
+                
+                // Renderizar jogadores iniciais
+                renderPlayers();
+            }
+
+            function handleLogout() {
+                appState.currentUser = null;
+                appState.isAdmin = false;
+                elements.appContainer.style.display = 'none';
+                elements.loginScreen.style.display = 'flex';
+                elements.usernameInput.value = '';
+                elements.passwordInput.value = '';
+                elements.passwordInput.type = 'password';
+                elements.passwordIcon.classList.remove('fa-eye-slash');
+                elements.passwordIcon.classList.add('fa-eye');
+            }
+
+            function showResetModal(e) {
+                e.preventDefault();
+                elements.resetModal.style.display = 'flex';
+            }
+
+            function hideResetModal() {
+                elements.resetModal.style.display = 'none';
+                elements.resetEmail.value = '';
+            }
+
+            function handleResetPassword() {
+                const email = elements.resetEmail.value.trim();
+                
+                if (!email) {
+                    showToast('Por favor, insira um e-mail válido');
+                    return;
+                }
+                
+                // Simular envio de e-mail
+                hideResetModal();
+                elements.resetSuccessModal.style.display = 'flex';
+            }
+
+            function hideSuccessModal() {
+                elements.resetSuccessModal.style.display = 'none';
+            }
+
+            function handleChangePassword(e) {
+                e.preventDefault();
+                
+                const currentPassword = elements.currentPassword.value;
+                const newPassword = elements.newPassword.value;
+                const confirmPassword = elements.confirmPassword.value;
+                const recoveryEmail = elements.recoveryEmail.value;
+                
+                // Validações
+                if (!currentPassword || !newPassword || !confirmPassword || !recoveryEmail) {
+                    showToast('Preencha todos os campos');
+                    return;
+                }
+                
+                if (newPassword !== confirmPassword) {
+                    showToast('As novas senhas não coincidem');
+                    return;
+                }
+                
+                // Verificar se a senha atual está correta
+                const correctPassword = appState.isAdmin ? 
+                    appState.credentials.admin.password : 
+                    appState.credentials.user.password;
+                
+                if (currentPassword !== correctPassword) {
+                    showToast('Senha atual incorreta');
+                    return;
+                }
+                
+                // Atualizar senha
+                const currentDate = new Date();
+                const formattedDate = `${currentDate.toLocaleDateString()} ${currentDate.toLocaleTimeString()}`;
+                
+                if (appState.isAdmin) {
+                    appState.credentials.admin.password = newPassword;
+                    appState.credentials.admin.email = recoveryEmail;
+                    appState.credentials.admin.lastUpdate = formattedDate;
+                    updateAdminInfoUI();
+                } else {
+                    appState.credentials.user.password = newPassword;
+                    appState.credentials.user.email = recoveryEmail;
+                    appState.credentials.user.lastUpdate = formattedDate;
+                }
+                
+                showToast('Senha alterada com sucesso!');
+                
+                // Limpar formulário
+                elements.changePasswordForm.reset();
+            }
+
+            function updateAdminInfoUI() {
+                if (appState.isAdmin) {
+                    elements.adminSettingsInfo.classList.remove('hidden');
+                    elements.adminUsername.textContent = appState.credentials.admin.username;
+                    elements.adminEmail.textContent = appState.credentials.admin.email || 'Não definido';
+                    elements.adminLastUpdate.textContent = appState.credentials.admin.lastUpdate || 'Nunca';
+                } else {
+                    elements.adminSettingsInfo.classList.add('hidden');
+                }
+            }
+
+            // Navegação de Tabs
+            function switchTab(tabId) {
+                // Remover classe ativa de todos os botões e conteúdos
+                elements.tabButtons.forEach(btn => btn.classList.remove('active'));
+                elements.tabContents.forEach(content => content.classList.remove('active'));
+                
+                // Adicionar classe ativa ao botão e conteúdo correspondente
+                const button = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
+                const content = document.getElementById(tabId);
+                
+                if (button && content) {
+                    button.classList.add('active');
+                    content.classList.add('active');
+                }
+                
+                // Se estivermos na aba de configurações e o usuário for admin, mostrar informações do admin
+                if (tabId === 'settings-tab') {
+                    updateAdminInfoUI();
+                }
+                
+                // Rolar até o botão da aba selecionada (melhora a experiência em mobile)
+                if (appState.isMobile) {
+                    button.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+                }
+                
+                // Fechar modal flutuante ao mudar de aba
+                hideFloatingModal();
+            }
+
+            // Gerenciamento de Fotos e Image Cropper
+            function setupCropperModal(aspectRatio, title, instructions) {
+                elements.cropperTitle.textContent = title;
+                elements.cropperInstructions.textContent = instructions;
+                
+                // Configurar o container de preview adequado com base no tipo
+                elements.previewContainer.className = ''; // Reset das classes
+                if (appState.cropperType === 'photo') {
+                    elements.previewContainer.classList.add('cropper-preview');
+                } else {
+                    elements.previewContainer.classList.add('logo-cropper-preview');
+                }
+            }
+            
+            function handleImageUpload(e, type) {
+                const file = e.target.files[0];
+                
+                if (file) {
+                    const reader = new FileReader();
+                    
+                    reader.onload = function(event) {
+                        // Mostrar cropper para ajustar a imagem
+                        showCropperModal(event.target.result);
+                    };
+                    
+                    reader.readAsDataURL(file);
+                }
+            }
+
+            function showCropperModal(imageSrc) {
+                elements.cropperImage.src = imageSrc;
+                elements.cropperModal.style.display = 'flex';
+                
+                // Inicializar cropper após carregar a imagem
+                elements.cropperImage.onload = function() {
+                    if (appState.cropper) {
+                        appState.cropper.destroy();
+                    }
+                    
+                    const aspectRatio = appState.cropperType === 'photo' ? 3/4 : 1;
+                    
+                    appState.cropper = new Cropper(elements.cropperImage, {
+                        aspectRatio: aspectRatio,
+                        viewMode: 1,
+                        dragMode: 'move',
+                        autoCropArea: 0.8,
+                        restore: false,
+                        guides: true,
+                        center: true,
+                        highlight: false,
+                        cropBoxMovable: true,
+                        cropBoxResizable: true,
+                        toggleDragModeOnDblclick: false,
+                        preview: appState.cropperType === 'photo' ? '.cropper-preview' : '.logo-cropper-preview'
+                    });
+                };
+            }
+
+            function hideCropperModal() {
+                elements.cropperModal.style.display = 'none';
+                if (appState.cropper) {
+                    appState.cropper.destroy();
+                    appState.cropper = null;
+                }
+            }
+
+            function handleCropperZoom(e) {
+                if (appState.cropper) {
+                    appState.cropper.zoomTo(parseFloat(e.target.value));
+                }
+            }
+
+            function rotateCropper(degree) {
+                if (appState.cropper) {
+                    appState.cropper.rotate(degree);
+                }
+            }
+
+            function resetCropper() {
+                if (appState.cropper) {
+                    appState.cropper.reset();
+                    elements.zoomRange.value = 1;
+                }
+            }
+
+            function applyCrop() {
+                if (appState.cropper) {
+                    let width, height;
+                    
+                    if (appState.cropperType === 'photo') {
+                        width = 300;
+                        height = 400;
+                    } else {
+                        width = 300;
+                        height = 300;
+                    }
+                    
+                    const canvas = appState.cropper.getCroppedCanvas({
+                        width: width,
+                        height: height,
+                        imageSmoothingEnabled: true,
+                        imageSmoothingQuality: 'high',
+                    });
+                    
+                    if (canvas) {
+                        const dataURL = canvas.toDataURL('image/jpeg', 0.9);
+                        
+                        if (appState.cropperType === 'photo') {
+                            elements.photoPreview.src = dataURL;
+                            elements.photoPreview.classList.remove('hidden');
+                            elements.photoPlaceholder.style.display = 'none';
+                        } else {
+                            elements.logoPreview.src = dataURL;
+                            elements.logoPreview.classList.remove('hidden');
+                            elements.logoPlaceholder.style.display = 'none';
+                        }
+                        
+                        hideCropperModal();
+                    }
+                }
+            }
+
+            // Gerenciamento de Jogadores
+            function showNewPlayerForm() {
+                // Limpar formulário
+                elements.playerForm.reset();
+                elements.photoPreview.classList.add('hidden');
+                elements.photoPlaceholder.style.display = 'block';
+                
+                // Configurar para novo jogador
+                document.getElementById('player-id').value = '';
+                elements.formTitle.textContent = 'Cadastrar Novo Jogador';
+                elements.saveBtnText.textContent = 'Cadastrar';
+                
+                // Mostrar formulário
+                elements.playerFormContainer.style.display = 'block';
+                
+                // Rolar para o topo do formulário
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+
+            function hidePlayerForm() {
+                elements.playerFormContainer.style.display = 'none';
+            }
+
+            function handlePlayerFormSubmit(e) {
+                e.preventDefault();
+                
+                // Obter valores do formulário
+                const id = document.getElementById('player-id').value;
+                const player = {
+                    // Se for edição, usar ID existente, senão gerar novo
+                    id: id ? parseInt(id) : ++appState.lastId.players,
+                    fullname: document.getElementById('fullname').value,
+                    nickname: document.getElementById('nickname').value,
+                    cpf: document.getElementById('cpf').value,
+                    rg: document.getElementById('rg').value,
+                    issuingAgency: document.getElementById('issuing-agency').value,
+                    birthDate: document.getElementById('birth-date').value,
+                    nationality: document.getElementById('nationality').value,
+                    birthCity: document.getElementById('birth-city').value,
+                    birthState: document.getElementById('birth-state').value,
+                    fatherName: document.getElementById('father-name').value,
+                    motherName: document.getElementById('mother-name').value,
+                    address: document.getElementById('address').value,
+                    addressNumber: document.getElementById('address-number').value,
+                    addressComplement: document.getElementById('address-complement').value,
+                    neighborhood: document.getElementById('neighborhood').value,
+                    zipcode: document.getElementById('zipcode').value,
+                    municipality: document.getElementById('municipality').value,
+                    phone: document.getElementById('phone').value,
+                    email: document.getElementById('email').value,
+                    teamId: parseInt(document.getElementById('team').value),
+                    position: document.getElementById('position').value,
+                    jerseyNumber: document.getElementById('jersey-number').value,
+                    photo: elements.photoPreview.classList.contains('hidden') ? null : elements.photoPreview.src
+                };
+                
+                // Validar time selecionado
+                if (!player.teamId) {
+                    showToast('Selecione um time');
+                    return;
+                }
+                
+                // Encontrar o nome do time
+                const team = appState.teams.find(t => t.id === player.teamId);
+                player.teamName = team ? team.name : '';
+                
+                // Verificar se é edição ou novo jogador
+                if (id) {
+                    // Edição
+                    const index = appState.players.findIndex(p => p.id === parseInt(id));
+                    if (index !== -1) {
+                        appState.players[index] = player;
+                        showToast('Jogador atualizado com sucesso!');
+                    }
+                } else {
+                    // Novo jogador
+                    appState.players.push(player);
+                    showToast('Jogador cadastrado com sucesso!');
+                }
+                
+                // Atualizar lista e esconder formulário
+                renderPlayers();
+                
+                // Atualizar a contagem de jogadores na tabela de times
+                renderTeams();
+                
+                hidePlayerForm();
+            }
+
+            function editPlayer(id) {
+                const player = appState.players.find(p => p.id === id);
+                
+                if (!player) {
+                    showToast('Jogador não encontrado');
+                    return;
+                }
+                
+                // Preencher formulário
+                document.getElementById('player-id').value = player.id;
+                document.getElementById('fullname').value = player.fullname;
+                document.getElementById('nickname').value = player.nickname;
+                document.getElementById('cpf').value = player.cpf;
+                document.getElementById('rg').value = player.rg;
+                document.getElementById('issuing-agency').value = player.issuingAgency;
+                document.getElementById('birth-date').value = player.birthDate;
+                document.getElementById('nationality').value = player.nationality;
+                document.getElementById('birth-city').value = player.birthCity;
+                document.getElementById('birth-state').value = player.birthState;
+                document.getElementById('father-name').value = player.fatherName;
+                document.getElementById('mother-name').value = player.motherName;
+                document.getElementById('address').value = player.address;
+                document.getElementById('address-number').value = player.addressNumber;
+                document.getElementById('address-complement').value = player.addressComplement;
+                document.getElementById('neighborhood').value = player.neighborhood;
+                document.getElementById('zipcode').value = player.zipcode;
+                document.getElementById('municipality').value = player.municipality;
+                document.getElementById('phone').value = player.phone;
+                document.getElementById('email').value = player.email;
+                document.getElementById('team').value = player.teamId;
+                document.getElementById('position').value = player.position;
+                document.getElementById('jersey-number').value = player.jerseyNumber;
+                
+                // Foto
+                if (player.photo) {
+                    elements.photoPreview.src = player.photo;
+                    elements.photoPreview.classList.remove('hidden');
+                    elements.photoPlaceholder.style.display = 'none';
+                } else {
+                    elements.photoPreview.classList.add('hidden');
+                    elements.photoPlaceholder.style.display = 'block';
+                }
+                
+                // Configurar formulário
+                elements.formTitle.textContent = 'Editar Jogador';
+                elements.saveBtnText.textContent = 'Salvar';
+                
+                // Mostrar formulário
+                elements.playerFormContainer.style.display = 'block';
+                
+                // Rolar para o topo do formulário
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+
+            function deletePlayer(id) {
+                // Configurar modal de confirmação
+                elements.confirmTitle.textContent = 'Confirmar Exclusão';
+                elements.confirmMessage.textContent = 'Tem certeza que deseja excluir este jogador? Esta ação não pode ser desfeita.';
+                
+                // Configurar callback do botão OK
+                elements.confirmOk.onclick = function() {
+                    const index = appState.players.findIndex(p => p.id === id);
+                    
+                    if (index !== -1) {
+                        appState.players.splice(index, 1);
+                        renderPlayers();
+                        // Atualizar a contagem de jogadores na tabela de times
+                        renderTeams();
+                        showToast('Jogador excluído com sucesso!');
+                    }
+                    
+                    hideConfirmModal();
+                };
+                
+                // Mostrar modal
+                elements.confirmModal.style.display = 'flex';
+            }
+
+            function renderPlayers() {
+                let filteredPlayers = appState.players;
+                const teamFilter = elements.filterTeam.value;
+                
+                // Aplicar filtro de time se selecionado
+                if (teamFilter) {
+                    filteredPlayers = filteredPlayers.filter(p => p.teamId === parseInt(teamFilter));
+                }
+                
+                // Renderizar jogadores
+                if (filteredPlayers.length === 0) {
+                    elements.playersTableBody.innerHTML = `
+                        <tr>
+                            <td colspan="7" class="px-2 sm:px-4 py-2 sm:py-4 text-center text-gray-500 dark:text-gray-400">
+                                ${teamFilter ? 'Nenhum jogador encontrado neste time' : 'Nenhum jogador cadastrado'}
+                            </td>
+                        </tr>
+                    `;
+                } else {
+                    elements.playersTableBody.innerHTML = filteredPlayers.map(player => `
+                        <tr class="hover:bg-gray-400 dark:hover:bg-gray-750">
+                            <td class="px-2 sm:px-4 py-2 sm:py-3 w-16">
+                                ${player.photo ? 
+                                  `<img src="${player.photo}" alt="Foto de ${player.fullname}" class="player-photo-table">` : 
+                                  `<div class="w-12 h-16 bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                                    <i class="fas fa-user text-gray-400 dark:text-gray-500"></i>
+                                   </div>`
+                                }
+                            </td>
+                            <td class="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm">${player.fullname}</td>
+                            <td class="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm">${player.cpf}</td>
+                            <td class="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm">${player.teamName}</td>
+                            <td class="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm xs-hidden">${player.position}</td>
+                            <td class="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm xs-hidden">${player.jerseyNumber}</td>
+                            <td class="px-2 sm:px-4 py-2 sm:py-3 text-right">
+                                <button class="text-blue-500 hover:text-blue-700 mr-2 touch-target p-2 view-player-btn" onclick="showFloatingPlayerDetails(${player.id}, 'view', event)">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="text-blue-500 hover:text-blue-700 mr-2 touch-target p-2 edit-player-btn" onclick="showFloatingPlayerDetails(${player.id}, 'edit', event)">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="text-red-500 hover:text-red-700 touch-target p-2" onclick="deletePlayer(${player.id})">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `).join('');
+                }
+            }
+
+            function filterPlayers() {
+                renderPlayers();
+            }
+
+            // Gerenciamento de Times
+            function showNewTeamForm() {
+                // Limpar formulário
+                elements.teamForm.reset();
+                elements.logoPreview.classList.add('hidden');
+                elements.logoPlaceholder.style.display = 'block';
+                
+                // Configurar para novo time
+                document.getElementById('team-id').value = '';
+                elements.teamFormTitle.textContent = 'Cadastrar Novo Time';
+                elements.saveTeamBtnText.textContent = 'Cadastrar';
+                
+                // Mostrar formulário
+                elements.teamFormContainer.style.display = 'block';
+                
+                // Rolar para o topo do formulário
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+
+            function hideTeamForm() {
+                elements.teamFormContainer.style.display = 'none';
+            }
+
+            function handleTeamFormSubmit(e) {
+                e.preventDefault();
+                
+                // Obter valores do formulário
+                const id = document.getElementById('team-id').value;
+                const team = {
+                    // Se for edição, usar ID existente, senão gerar novo
+                    id: id ? parseInt(id) : ++appState.lastId.teams,
+                    name: document.getElementById('team-name').value,
+                    city: document.getElementById('team-city').value,
+                    state: document.getElementById('team-state').value,
+                    address: document.getElementById('team-address').value,
+                    phone: document.getElementById('team-phone').value,
+                    logo: elements.logoPreview.classList.contains('hidden') ? null : elements.logoPreview.src
+                };
+                
+                // Verificar se é edição ou novo time
+                if (id) {
+                    // Edição
+                    const index = appState.teams.findIndex(t => t.id === parseInt(id));
+                    if (index !== -1) {
+                        appState.teams[index] = team;
+                        showToast('Time atualizado com sucesso!');
+                    }
+                } else {
+                    // Novo time
+                    appState.teams.push(team);
+                    showToast('Time cadastrado com sucesso!');
+                }
+                
+                // Atualizar dropdowns de time
+                populateTeamDropdowns();
+                
+                // Atualizar lista e esconder formulário
+                renderTeams();
+                hideTeamForm();
+            }
+
+            function editTeam(id) {
+                const team = appState.teams.find(t => t.id === id);
+                
+                if (!team) {
+                    showToast('Time não encontrado');
+                    return;
+                }
+                
+                // Preencher formulário
+                document.getElementById('team-id').value = team.id;
+                document.getElementById('team-name').value = team.name;
+                document.getElementById('team-city').value = team.city;
+                document.getElementById('team-state').value = team.state;
+                document.getElementById('team-address').value = team.address;
+                document.getElementById('team-phone').value = team.phone;
+                
+                // Logo
+                if (team.logo) {
+                    elements.logoPreview.src = team.logo;
+                    elements.logoPreview.classList.remove('hidden');
+                    elements.logoPlaceholder.style.display = 'none';
+                } else {
+                    elements.logoPreview.classList.add('hidden');
+                    elements.logoPlaceholder.style.display = 'block';
+                }
+                
+                // Configurar formulário
+                elements.teamFormTitle.textContent = 'Editar Time';
+                elements.saveTeamBtnText.textContent = 'Salvar';
+                
+                // Mostrar formulário
+                elements.teamFormContainer.style.display = 'block';
+                
+                // Rolar para o topo do formulário
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+
+            function deleteTeam(id) {
+                // Verificar se há jogadores deste time
+                const hasPlayers = appState.players.some(p => p.teamId === id);
+                
+                if (hasPlayers) {
+                    showToast('Não é possível excluir um time com jogadores cadastrados');
+                    return;
+                }
+                
+                // Configurar modal de confirmação
+                elements.confirmTitle.textContent = 'Confirmar Exclusão';
+                elements.confirmMessage.textContent = 'Tem certeza que deseja excluir este time? Esta ação não pode ser desfeita.';
+                
+                // Configurar callback do botão OK
+                elements.confirmOk.onclick = function() {
+                    const index = appState.teams.findIndex(t => t.id === id);
+                    
+                    if (index !== -1) {
+                        appState.teams.splice(index, 1);
+                        renderTeams();
+                        populateTeamDropdowns();
+                        showToast('Time excluído com sucesso!');
+                    }
+                    
+                    hideConfirmModal();
+                };
+                
+                // Mostrar modal
+                elements.confirmModal.style.display = 'flex';
+            }
+
+            function renderTeams() {
+                if (appState.teams.length === 0) {
+                    elements.teamsTableBody.innerHTML = `
+                        <tr>
+                            <td colspan="6" class="px-2 sm:px-4 py-2 sm:py-4 text-center text-gray-500 dark:text-gray-400">Nenhum time cadastrado</td>
+                        </tr>
+                    `;
+                } else {
+                    elements.teamsTableBody.innerHTML = appState.teams.map(team => {
+                        // Contar jogadores deste time
+                        const playerCount = appState.players.filter(p => p.teamId === team.id).length;
+                        
+                        return `
+                            <tr class="hover:bg-gray-400 dark:hover:bg-gray-750">
+                                <td class="px-2 sm:px-4 py-2 sm:py-3 w-16">
+                                    ${team.logo ? 
+                                      `<img src="${team.logo}" alt="Logo de ${team.name}" class="team-logo-table">` : 
+                                      `<div class="w-12 h-12 rounded bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                                        <i class="fas fa-shield-alt text-gray-400 dark:text-gray-500"></i>
+                                      </div>`
+                                    }
+                                </td>
+                                <td class="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm">${team.name}</td>
+                                <td class="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm xs-hidden">${team.city}</td>
+                                <td class="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm xs-hidden">${team.state}</td>
+                                <td class="px-2 sm:px-4 py-2 sm:py-3 text-right text-xs sm:text-sm">${playerCount}</td>
+                                <td class="px-2 sm:px-4 py-2 sm:py-3 text-right">
+                                    <button class="text-blue-500 hover:text-blue-700 mr-2 touch-target p-2" onclick="editTeam(${team.id})">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="text-red-500 hover:text-red-700 touch-target p-2" onclick="deleteTeam(${team.id})">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                    }).join('');
+                }
+            }
+
+            // Pesquisa
+            function handleSearch() {
+                const term = elements.searchTerm.value.trim().toLowerCase();
+                const teamId = elements.searchTeam.value ? parseInt(elements.searchTeam.value) : null;
+                
+                // Filtrar jogadores
+                let results = [...appState.players];
+                
+                if (teamId) {
+                    results = results.filter(p => p.teamId === teamId);
+                }
+                
+                if (term) {
+                    results = results.filter(p => 
+                        p.fullname.toLowerCase().includes(term) ||
+                        p.nickname.toLowerCase().includes(term) ||
+                        p.cpf.toLowerCase().includes(term) ||
+                        p.rg.toLowerCase().includes(term) ||
+                        p.email.toLowerCase().includes(term)
+                    );
+                }
+                
+                // Ordenar resultados (por CPF em caso de desempate)
+                results.sort((a, b) => {
+                    if (a.fullname.toLowerCase() === b.fullname.toLowerCase()) {
+                        return a.cpf.localeCompare(b.cpf);
+                    }
+                    return a.fullname.localeCompare(b.fullname);
+                });
+                
+                // Renderizar resultados
+                if (results.length === 0) {
+                    elements.searchTableBody.innerHTML = `
+                        <tr>
+                            <td colspan="7" class="px-2 sm:px-4 py-2 sm:py-4 text-center text-gray-500 dark:text-gray-400">Nenhum jogador encontrado</td>
+                        </tr>
+                    `;
+                } else {
+                    elements.searchTableBody.innerHTML = results.map(player => `
+                        <tr class="hover:bg-gray-400 dark:hover:bg-gray-750">
+                            <td class="px-2 sm:px-4 py-2 sm:py-3 w-16">
+                                ${player.photo ? 
+                                  `<img src="${player.photo}" alt="Foto de ${player.fullname}" class="player-photo-table">` : 
+                                  `<div class="w-12 h-16 bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                                    <i class="fas fa-user text-gray-400 dark:text-gray-500"></i>
+                                   </div>`
+                                }
+                            </td>
+                            <td class="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm">${player.fullname}</td>
+                            <td class="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm">${player.cpf}</td>
+                            <td class="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm">${player.teamName}</td>
+                            <td class="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm xs-hidden">${player.position}</td>
+                            <td class="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm xs-hidden">${player.jerseyNumber}</td>
+                            <td class="px-2 sm:px-4 py-2 sm:py-3 text-right">
+                                <button class="text-blue-500 hover:text-blue-700 mr-2 touch-target p-2 view-player-btn" onclick="showFloatingPlayerDetails(${player.id}, 'view', event)">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="text-blue-500 hover:text-blue-700 mr-2 touch-target p-2 edit-player-btn" onclick="showFloatingPlayerDetails(${player.id}, 'edit', event)">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="text-red-500 hover:text-red-700 touch-target p-2" onclick="deletePlayer(${player.id})">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `).join('');
+                }
+            }
+
+            function viewPlayer(id) {
+                editPlayer(id);
+            }
+
+            // Exportar Dados
+            function exportPlayers() {
+                const format = elements.exportPlayersFormat.value;
+                const teamId = elements.exportPlayersTeam.value ? parseInt(elements.exportPlayersTeam.value) : null;
+                
+                // Filtrar jogadores
+                let playersToExport = [...appState.players];
+                
+                if (teamId) {
+                    playersToExport = playersToExport.filter(p => p.teamId === teamId);
+                }
+                
+                if (playersToExport.length === 0) {
+                    showToast('Nenhum jogador para exportar');
+                    return;
+                }
+                
+                // Exportar de acordo com o formato
+                if (format === 'excel') {
+                    exportPlayersToExcel(playersToExport);
+                } else if (format === 'word') {
+                    exportPlayersToWord(playersToExport);
+                }
+            }
+
+            function exportTeams() {
+                const format = elements.exportTeamsFormat.value;
+                
+                if (appState.teams.length === 0) {
+                    showToast('Nenhum time para exportar');
+                    return;
+                }
+                
+                // Exportar de acordo com o formato
+                if (format === 'excel') {
+                    exportTeamsToExcel();
+                } else if (format === 'word') {
+                    exportTeamsToWord();
+                }
+            }
+
+            function exportPlayersToExcel(players) {
+                // Preparar dados para Excel
+                const data = players.map(p => {
+                    // Encontrar o nome do time
+                    const team = appState.teams.find(t => t.id === p.teamId);
+                    const teamName = team ? team.name : '';
+                    
+                    return {
+                        'Nome Completo': p.fullname,
+                        'Apelido': p.nickname,
+                        'CPF': p.cpf,
+                        'RG': p.rg,
+                        'Órgão Expedidor': p.issuingAgency,
+                        'Data de Nascimento': p.birthDate,
+                        'Nacionalidade': p.nationality,
+                        'Cidade Natal': p.birthCity,
+                        'UF': p.birthState,
+                        'Nome do Pai': p.fatherName,
+                        'Nome da Mãe': p.motherName,
+                        'Endereço': p.address,
+                        'Número': p.addressNumber,
+                        'Complemento': p.addressComplement,
+                        'Bairro': p.neighborhood,
+                        'CEP': p.zipcode,
+                        'Município': p.municipality,
+                        'Celular': p.phone,
+                        'E-mail': p.email,
+                        'Time': teamName,
+                        'Posição': p.position,
+                        'Número da Camisa': p.jerseyNumber
+                    };
+                });
+                
+                // Criar Workbook
+                const worksheet = XLSX.utils.json_to_sheet(data);
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, 'Jogadores');
+                
+                // Gerar arquivo
+                const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+                const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                saveAs(blob, 'jogadores_futsal.xlsx');
+                
+                showToast('Jogadores exportados com sucesso!');
+            }
+
+            function exportTeamsToExcel() {
+                // Preparar dados para Excel
+                const data = appState.teams.map(t => {
+                    // Contar jogadores deste time
+                    const playerCount = appState.players.filter(p => p.teamId === t.id).length;
+                    
+                    return {
+                        'Nome do Time': t.name,
+                        'Cidade': t.city,
+                        'Estado': t.state,
+                        'Endereço': t.address,
+                        'Telefone': t.phone,
+                        'Jogadores Cadastrados': playerCount
+                    };
+                });
+                
+                // Criar Workbook
+                const worksheet = XLSX.utils.json_to_sheet(data);
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, 'Times');
+                
+                // Gerar arquivo
+                const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+                const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                saveAs(blob, 'times_futsal.xlsx');
+                
+                showToast('Times exportados com sucesso!');
+            }
+
+            function exportPlayersToWord(players) {
+                // Criar documento usando docx.js
+                const docx = window.docx;
+                
+                const children = [
+                    new docx.Paragraph({
+                        text: 'Lista de Jogadores de Futsal',
+                        heading: docx.HeadingLevel.HEADING_1,
+                        alignment: docx.AlignmentType.CENTER,
+                        spacing: { after: 200 }
+                    })
+                ];
+                
+                // Adicionar informações de cada jogador
+                players.forEach((p, index) => {
+                    // Encontrar o nome do time
+                    const team = appState.teams.find(t => t.id === p.teamId);
+                    const teamName = team ? team.name : '';
+                    
+                    children.push(
+                        new docx.Paragraph({
+                            text: `Jogador ${index + 1}: ${p.fullname}`,
+                            heading: docx.HeadingLevel.HEADING_2,
+                            spacing: { before: 300, after: 100 }
+                        }),
+                        new docx.Paragraph({ 
+                            text: `Time: ${teamName}`, 
+                            spacing: { after: 100 } 
+                        }),
+                        new docx.Paragraph({ 
+                            text: `Posição: ${p.position} | Camisa: ${p.jerseyNumber}`, 
+                            spacing: { after: 100 } 
+                        }),
+                        new docx.Paragraph({ 
+                            text: `CPF: ${p.cpf} | RG: ${p.rg} (${p.issuingAgency})`, 
+                            spacing: { after: 100 } 
+                        }),
+                        new docx.Paragraph({ 
+                            text: `Data de Nascimento: ${p.birthDate} | Nacionalidade: ${p.nationality}`, 
+                            spacing: { after: 100 } 
+                        }),
+                        new docx.Paragraph({ 
+                            text: `Cidade Natal: ${p.birthCity}/${p.birthState}`, 
+                            spacing: { after: 100 } 
+                        }),
+                        new docx.Paragraph({ 
+                            text: `Contato: ${p.phone} | ${p.email}`, 
+                            spacing: { after: 100 } 
+                        }),
+                        new docx.Paragraph({ 
+                            text: `Endereço: ${p.address}, ${p.addressNumber} ${p.addressComplement ? ', ' + p.addressComplement : ''} - ${p.neighborhood} - ${p.municipality} - CEP: ${p.zipcode}`, 
+                            spacing: { after: 300 } 
+                        })
+                    );
+                    
+                    // Adicionar linha separadora, exceto para o último
+                    if (index < players.length - 1) {
+                        children.push(
+                            new docx.Paragraph({
+                                text: '------------------------',
+                                alignment: docx.AlignmentType.CENTER,
+                                spacing: { before: 100, after: 100 }
+                            })
+                        );
+                    }
+                });
+                
+                // Criar documento
+                const doc = new docx.Document({
+                    sections: [{
+                        properties: {},
+                        children: children
+                    }]
+                });
+                
+                // Gerar arquivo
+                docx.Packer.toBlob(doc).then(blob => {
+                    saveAs(blob, 'jogadores_futsal.docx');
+                    showToast('Jogadores exportados com sucesso!');
+                });
+            }
+
+            function exportTeamsToWord() {
+                // Criar documento usando docx.js
+                const docx = window.docx;
+                
+                const children = [
+                    new docx.Paragraph({
+                        text: 'Lista de Times de Futsal',
+                        heading: docx.HeadingLevel.HEADING_1,
+                        alignment: docx.AlignmentType.CENTER,
+                        spacing: { after: 200 }
+                    })
+                ];
+                
+                // Adicionar informações de cada time
+                appState.teams.forEach((t, index) => {
+                    // Contar jogadores deste time
+                    const playerCount = appState.players.filter(p => p.teamId === t.id).length;
+                    
+                    children.push(
+                        new docx.Paragraph({
+                            text: `Time: ${t.name}`,
+                            heading: docx.HeadingLevel.HEADING_2,
+                            spacing: { before: 300, after: 100 }
+                        }),
+                        new docx.Paragraph({ 
+                            text: `Localização: ${t.city}/${t.state}`, 
+                            spacing: { after: 100 } 
+                        }),
+                        new docx.Paragraph({ 
+                            text: `Endereço: ${t.address || 'Não informado'}`, 
+                            spacing: { after: 100 } 
+                        }),
+                        new docx.Paragraph({ 
+                            text: `Telefone: ${t.phone || 'Não informado'}`, 
+                            spacing: { after: 100 } 
+                        }),
+                        new docx.Paragraph({ 
+                            text: `Jogadores Cadastrados: ${playerCount}`, 
+                            spacing: { after: 300 } 
+                        })
+                    );
+                    
+                    // Adicionar linha separadora, exceto para o último
+                    if (index < appState.teams.length - 1) {
+                        children.push(
+                            new docx.Paragraph({
+                                text: '------------------------',
+                                alignment: docx.AlignmentType.CENTER,
+                                spacing: { before: 100, after: 100 }
+                            })
+                        );
+                    }
+                });
+                
+                // Criar documento
+                const doc = new docx.Document({
+                    sections: [{
+                        properties: {},
+                        children: children
+                    }]
+                });
+                
+                // Gerar arquivo
+                docx.Packer.toBlob(doc).then(blob => {
+                    saveAs(blob, 'times_futsal.docx');
+                    showToast('Times exportados com sucesso!');
+                });
+            }
+
+            // Utilitários
+            function showToast(message) {
+                elements.toastMessage.textContent = message;
+                elements.toast.classList.remove('hidden');
+                elements.toast.classList.add('animate-fade-in');
+                
+                // Esconder toast após 3 segundos
+                setTimeout(() => {
+                    elements.toast.classList.remove('animate-fade-in');
+                    elements.toast.classList.add('animate-fade-out');
+                    
+                    setTimeout(() => {
+                        elements.toast.classList.add('hidden');
+                        elements.toast.classList.remove('animate-fade-out');
+                    }, 300);
+                }, 3000);
+            }
+
+            function hideConfirmModal() {
+                elements.confirmModal.style.display = 'none';
+            }
+
+            
+        });
+    </script>
+</body>
+</html>
