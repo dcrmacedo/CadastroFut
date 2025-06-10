@@ -1928,70 +1928,56 @@
             }
 
             function handlePlayerFormSubmit(e) {
-                e.preventDefault();
-                
-                // Obter valores do formulário
-                const id = document.getElementById('player-id').value;
-                const player = {
-                    // Se for edição, usar ID existente, senão gerar novo
-                    id: id ? parseInt(id) : ++appState.lastId.players,
-                    fullname: document.getElementById('fullname').value,
-                    nickname: document.getElementById('nickname').value,
-                    cpf: document.getElementById('cpf').value,
-                    rg: document.getElementById('rg').value,
-                    issuingAgency: document.getElementById('issuing-agency').value,
-                    birthDate: document.getElementById('birth-date').value,
-                    nationality: document.getElementById('nationality').value,
-                    birthCity: document.getElementById('birth-city').value,
-                    birthState: document.getElementById('birth-state').value,
-                    fatherName: document.getElementById('father-name').value,
-                    motherName: document.getElementById('mother-name').value,
-                    address: document.getElementById('address').value,
-                    addressNumber: document.getElementById('address-number').value,
-                    addressComplement: document.getElementById('address-complement').value,
-                    neighborhood: document.getElementById('neighborhood').value,
-                    zipcode: document.getElementById('zipcode').value,
-                    municipality: document.getElementById('municipality').value,
-                    phone: document.getElementById('phone').value,
-                    email: document.getElementById('email').value,
-                    teamId: parseInt(document.getElementById('team').value),
-                    position: document.getElementById('position').value,
-                    jerseyNumber: document.getElementById('jersey-number').value,
-                    photo: elements.photoPreview.classList.contains('hidden') ? null : elements.photoPreview.src
-                };
-                
-                // Validar time selecionado
-                if (!player.teamId) {
-                    showToast('Selecione um time');
-                    return;
-                }
-                
-                // Encontrar o nome do time
-                const team = appState.teams.find(t => t.id === player.teamId);
-                player.teamName = team ? team.name : '';
-                
-                // Verificar se é edição ou novo jogador
-                if (id) {
-                    // Edição
-                    const index = appState.players.findIndex(p => p.id === parseInt(id));
-                    if (index !== -1) {
-                        appState.players[index] = player;
-                        showToast('Jogador atualizado com sucesso!');
-                    }
-                } else {
-                    // Novo jogador
-                    appState.players.push(player);
-                    showToast('Jogador cadastrado com sucesso!');
-                }
-                
-                // Atualizar lista e esconder formulário
-                renderPlayers();
-                
-                // Atualizar a contagem de jogadores na tabela de times
-                renderTeams();
-                
-                hidePlayerForm();
-            }
+                        e.preventDefault();
+
+    const formData = new FormData(elements.playerForm);
+    const playerId = formData.get('player-id');
+    const isEditing = playerId !== '';
+
+    const playerData = {
+        id: isEditing ? parseInt(playerId) : ++appState.lastId.players,
+        fullname: formData.get('fullname'),
+        nickname: formData.get('nickname'),
+        cpf: formData.get('cpf'),
+        rg: formData.get('rg'),
+        issuingAgency: formData.get('issuing-agency'),
+        birthDate: formData.get('birth-date'),
+        nationality: formData.get('nationality'),
+        birthCity: formData.get('birth-city'),
+        birthState: formData.get('birth-state'),
+        fatherName: formData.get('father-name'),
+        motherName: formData.get('mother-name'),
+        address: formData.get('address'),
+        addressNumber: formData.get('address-number'),
+        addressComplement: formData.get('address-complement'),
+        neighborhood: formData.get('neighborhood'),
+        zipcode: formData.get('zipcode'),
+        municipality: formData.get('municipality'),
+        phone: formData.get('phone'),
+        email: formData.get('email'),
+        teamId: parseInt(formData.get('team')),
+        position: formData.get('position'),
+        jerseyNumber: formData.get('jersey-number'),
+        photo: elements.photoPreview.src || null
+    };
+
+    if (isEditing) {
+        const index = appState.players.findIndex(p => p.id === parseInt(playerId));
+        appState.players[index] = playerData;
+        showToast('Jogador atualizado com sucesso!');
+    } else {
+        appState.players.push(playerData);
+        showToast('Jogador cadastrado com sucesso!');
+    }
+
+    renderPlayers();
+    renderTeams();
+    hidePlayerForm();
+
+    // Redirecionar para a aba de cadastro após o cadastro
+    switchTab('players-tab');
+}
+
 
             function editPlayer(id) {
                 const player = appState.players.find(p => p.id === id);
